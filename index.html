@@ -1,1887 +1,1380 @@
-<!DOCTYPE html>
+html_code = """<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fazbear OS - Terminal Retro PC</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Creepster&family=Special+Elite&family=VT323&family=Nosifer&family=Rubik+Glitch&display=swap" rel="stylesheet">
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>Fazbear OS - Terminal de Segurança</title>
     <style>
-        /* Permanent CRT Scanlines and Flickers */
-        .crt-scanlines {
-            position: relative;
-            overflow-x: hidden;
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
-        .crt-scanlines::after {
+
+        :root {
+            --bg-color: #0a0a0c;
+            --window-bg: #141416;
+            --window-border: #2c2c30;
+            --text-color: #39ff14; /* Verde Terminal clássico */
+            --text-error: #ff3333;
+            --text-muted: #1b850a;
+            --accent-color: #1a1a24;
+            --font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            position: relative;
+        }
+
+        /* FILTRO CRT PERMANENTE */
+        body::before {
             content: " ";
             display: block;
-            position: fixed;
+            position: absolute;
             top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 99999;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            z-index: 99999;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.27861; }
+            5% { opacity: 0.34769; }
+            10% { opacity: 0.23604; }
+            15% { opacity: 0.90626; }
+            20% { opacity: 0.18128; }
+            25% { opacity: 0.83891; }
+            30% { opacity: 0.65583; }
+            35% { opacity: 0.67807; }
+            40% { opacity: 0.26559; }
+            45% { opacity: 0.84693; }
+            50% { opacity: 0.96019; }
+            55% { opacity: 0.13594; }
+            60% { opacity: 0.88013; }
+            65% { opacity: 0.48341; }
+            70% { opacity: 0.75805; }
+            75% { opacity: 0.58043; }
+            80% { opacity: 0.30415; }
+            85% { opacity: 0.70869; }
+            90% { opacity: 0.2919; }
+            95% { opacity: 0.10427; }
+            100% { opacity: 0.40095; }
+        }
+
+        /* ESTÁTICA GLOBAL VIRTUAL */
+        .crt-static {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)" opacity="0.05"/%3E%3C/svg%3E');
+            opacity: 0.15;
             z-index: 9999;
-            background-size: 100% 4px, 6px 100%;
             pointer-events: none;
         }
 
-        @keyframes crt-flicker {
-            0% { opacity: 0.975; }
-            50% { opacity: 1; }
-            100% { opacity: 0.975; }
-        }
-        .crt-flicker-active {
-            animation: crt-flicker 0.15s infinite;
-        }
-
-        /* Camera blink effect */
-        @keyframes record-blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
-        }
-        .blink-red {
-            animation: record-blink 1.2s infinite;
-        }
-
-        /* Glitch text effect */
-        .glitch-text {
+        /* DESKTOP PRINCIPAL */
+        .desktop {
+            width: 100%;
+            height: calc(100vh - 45px);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            grid-auto-rows: 95px;
+            gap: 15px;
+            overflow-y: auto;
             position: relative;
-            text-shadow: 0.05em 0 0 rgba(255,0,0,.75), -0.025em -0.05em 0 rgba(0,255,0,.75), 0.025em 0.05em 0 rgba(0,0,255,.75);
-        }
-
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #18181b;
-            border-left: 1px solid #27272a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #3f3f46;
-            border: 2px solid #18181b;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #ef4444;
-        }
-
-        /* Static screen overlay */
-        .static-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            opacity: 0.045;
-            pointer-events: none;
-            z-index: 9998;
-        }
-
-        /* Retro Windows 3D bevel borders */
-        .retro-window {
-            border: 3px solid;
-            border-color: #52525b #18181b #18181b #52525b;
-            box-shadow: inset 1.5px 1.5px 0px #a1a1aa, inset -1.5px -1.5px 0px #09090b;
-        }
-        .retro-button {
-            border: 2px solid;
-            border-color: #71717a #09090b #09090b #71717a;
-            box-shadow: inset 1px 1px 0px #d4d4d8;
-        }
-        .retro-button:active {
-            border-color: #09090b #71717a #71717a #09090b;
-            box-shadow: inset -1px -1px 0px #d4d4d8;
-        }
-
-        /* Story layout adjustments */
-        .story-progress-bg {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        .story-progress-fill {
-            transition: width 0.1s linear;
-        }
-
-        /* Dynamic Wallpaper transitions */
-        .dynamic-wallpaper {
-            transition: background 1.2s ease-in-out;
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
+            transition: background-image 0.5s ease;
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid transparent;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(57, 255, 20, 0.1);
+            border-color: rgba(57, 255, 20, 0.3);
+        }
+
+        .desktop-icon img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            border: 1px solid var(--text-color);
+            background: #000;
+        }
+
+        .desktop-icon span {
+            font-size: 11px;
+            color: var(--text-color);
+            text-shadow: 0 0 4px #000;
+            font-weight: bold;
+            max-width: 85px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* JANELAS SISTEMA OPERACIONAL (RETRÔ) */
+        .window {
+            position: absolute;
+            top: 10%;
+            left: 15%;
+            width: 70%;
+            height: 75%;
+            background: var(--window-bg);
+            border: 2px solid var(--window-border);
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            display: none;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .window {
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: calc(100vh - 45px) !important;
+            }
+        }
+
+        .window-header {
+            background: #222226;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--window-border);
+            cursor: move;
+        }
+
+        .window-title {
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .window-controls button {
+            background: #111;
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 10px;
+            font-family: monospace;
+        }
+
+        .window-controls button:hover {
+            background: var(--text-color);
+            color: #000;
+        }
+
+        .window-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            color: #e0e0e0;
+            position: relative;
+        }
+
+        /* TASKBAR (BARRA DE TAREFAS) */
+        .taskbar {
+            height: 45px;
+            background: #18181b;
+            border-top: 2px solid var(--window-border);
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            z-index: 9000;
+        }
+
+        .start-btn {
+            background: #222226;
+            border: 1px solid #3e3e42;
+            color: var(--text-color);
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: var(--font-family);
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 2px;
+        }
+
+        .start-btn:hover {
+            background: var(--text-color);
+            color: #000;
+        }
+
+        .taskbar-tabs {
+            flex: 1;
+            margin-left: 15px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .task-tab {
+            background: #111;
+            border: 1px solid #333;
+            color: #888;
+            padding: 5px 15px;
+            font-size: 11px;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+        .task-tab.active {
+            background: #222226;
+            border-color: var(--text-color);
+            color: var(--text-color);
+        }
+
+        .system-tray {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 11px;
+            color: #888;
+            border-left: 1px solid #333;
+            padding-left: 15px;
+        }
+
+        /* MENU INICIAR */
+        .start-menu {
+            position: absolute;
+            bottom: 45px;
+            left: 5px;
+            width: 220px;
+            background: #141416;
+            border: 2px solid var(--window-border);
+            display: none;
+            flex-direction: column;
+            z-index: 9500;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+
+        .start-menu-item {
+            padding: 10px 15px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ddd;
+        }
+
+        .start-menu-item:hover {
+            background: rgba(57, 255, 20, 0.1);
+            color: var(--text-color);
+        }
+
+        /* NAVEGAÇÃO CATEGORIAS INTERNAS */
+        .game-dashboard {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .game-nav-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .game-nav-btn {
+            background: #111;
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: var(--font-family);
+        }
+
+        .game-nav-btn.active {
+            background: rgba(57, 255, 20, 0.1);
+            color: var(--text-color);
+            border-color: var(--text-color);
+        }
+
+        /* INTERFACE STORIES (INSTAGRAM-STYLE) */
+        .stories-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 20000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .story-wrapper {
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            position: relative;
+            background: #070709;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #222;
+            border-right: 1px solid #222;
+        }
+
+        .story-bars {
+            display: flex;
+            gap: 4px;
+            padding: 10px;
+            position: absolute;
+            top: 0; left: 0; width: 100%;
+            z-index: 20002;
+        }
+
+        .story-bar-bg {
+            flex: 1;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .story-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--text-color);
+        }
+
+        .story-header {
+            position: absolute;
+            top: 20px; left: 0; width: 100%;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20002;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
+
+        .story-user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .story-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--text-color);
+            object-fit: cover;
+        }
+
+        .story-username {
+            font-weight: bold;
+            font-size: 13px;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .story-close {
+            background: none; border: none;
+            color: #fff; font-size: 20px;
+            cursor: pointer;
+        }
+
+        .story-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 30px 20px 80px 20px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .story-content::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 40%, rgba(0,0,0,0.3) 100%);
+            z-index: 20001;
+        }
+
+        .story-text-area {
+            position: relative;
+            z-index: 20002;
+            color: #fff;
+        }
+
+        .story-title {
+            font-size: 22px;
+            margin-bottom: 10px;
+            color: var(--text-color);
+            text-shadow: 0 0 8px rgba(57,255,20,0.5);
+        }
+
+        .story-desc {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #ddd;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        /* TOUCH CONTROLS STORIES */
+        .story-touch-left, .story-touch-right {
+            position: absolute;
+            top: 60px;
+            width: 25%;
+            height: calc(100% - 140px);
+            z-index: 20003;
+        }
+        .story-touch-left { left: 0; }
+        .story-touch-right { right: 0; }
+
+        /* TELA DE LOGIN ADMIN STYLE DOS */
+        .admin-login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 30000;
+            display: none;
+            padding: 40px 20px;
+            font-family: monospace;
+        }
+
+        .dos-box {
+            max-width: 500px;
+            margin: 0 auto;
+            border: 1px solid var(--text-color);
+            padding: 20px;
+            background: #050505;
+        }
+
+        .dos-input-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .dos-input {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-family: monospace;
+            font-size: 14px;
+            outline: none;
+            flex: 1;
+        }
+
+        /* MODAIS DE CONFIGURAÇÃO / ADMIN */
+        .modal-admin {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%; max-width: 650px;
+            max-height: 85vh;
+            background: #141416;
+            border: 2px solid var(--text-color);
+            z-index: 25000;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 24999;
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: var(--text-color);
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            background: #0c0c0e;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            font-family: monospace;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--text-color);
+            outline: none;
+        }
+
+        .admin-action-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-panel {
+            background: #222;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+
+        .btn-panel:hover {
+            background: var(--text-color);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: #441111;
+            border-color: #aa3333;
+            color: #ff8888;
+        }
+
+        .btn-danger:hover {
+            background: #ff3333;
+            color: #000;
+        }
+
+        /* CARD GRID FALLBACK INTERNO */
+        .items-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .item-preview-card {
+            background: #1a1a1d;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .item-preview-card:hover {
+            border-color: var(--text-color);
+        }
+
+        .item-preview-card img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 2px;
+            margin-bottom: 5px;
+        }
+
+        .item-preview-card div {
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* EXTRA STYLING */
+        #yt-hidden-player-container {
+            position: absolute;
+            width: 1px; height: 1px;
+            opacity: 0; pointer-events: none;
+            left: -9999px; top: -9999px;
+        }
+
+        .system-status-indicator {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
         }
     </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen crt-scanlines crt-flicker-active font-mono selection:bg-red-700 selection:text-white dynamic-wallpaper relative overflow-hidden">
-    <!-- Semi-transparent protective layer for wallpaper -->
-    <div class="absolute inset-0 bg-black/90 z-0 pointer-events-none"></div>
-    <div class="static-overlay"></div>
+<body>
 
-    <!-- Hidden YouTube Player for Atmospheric Audio -->
-    <div id="youtube-audio-player-container" class="w-1 h-1 absolute top-0 left-0 opacity-0 pointer-events-none overflow-hidden">
-        <div id="yt-player"></div>
+    <div class="crt-static"></div>
+
+    <!-- BANCO DE SOM DO INSTAGRAM / SINAL YT -->
+    <div id="yt-hidden-player-container">
+        <div id="fazbear-yt-player"></div>
     </div>
 
-    <!-- FAZBEAR DESKTOP OS INTERFACE -->
-    <div id="desktop-env" class="relative z-10 w-screen h-screen flex flex-col justify-between select-none">
-        
-        <!-- DESKTOP WORKSPACE -->
-        <main class="flex-grow p-4 md:p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 content-start overflow-y-auto" id="desktop-icons-container">
-            <!-- Retro shortcuts will be loaded dynamically here -->
-        </main>
+    <!-- DESKTOP OPERACIONAL -->
+    <div class="desktop" id="system-desktop">
+        <!-- Ícones injetados via JS -->
+    </div>
 
-        <!-- RETRO SYSTEM WINDOWS FOR APP CONTAINERS -->
-        <div id="desktop-window" class="fixed inset-x-4 top-4 bottom-20 md:inset-x-12 md:top-8 md:bottom-24 bg-zinc-900 retro-window rounded-none flex-col z-20 hidden">
-            <!-- Window Titlebar -->
-            <div id="window-titlebar" class="bg-red-950/80 border-b-2 border-zinc-950 px-3 py-1.5 flex items-center justify-between text-xs select-none">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-red-600 blink-red inline-block"></span>
-                    <span id="window-title-text" class="font-bold tracking-wider uppercase text-red-400">Fazbear OS - Terminal de Arquivos</span>
+    <!-- APPS / JANELAS DO FAZBEAR OS -->
+    <div class="window" id="app-window">
+        <div class="window-header" id="window-drag-handle">
+            <div class="window-title" id="window-app-title">
+                🤖 Fazbear Explores
+            </div>
+            <div class="window-controls">
+                <button onclick="minimizeWindow()">_</button>
+                <button onclick="closeWindow()">X</button>
+            </div>
+        </div>
+        <div class="window-body" id="window-app-body">
+            <!-- Conteúdo Dinâmico do Capítulo Aberto -->
+        </div>
+    </div>
+
+    <!-- MENU INICIAR -->
+    <div class="start-menu" id="system-start-menu">
+        <div class="start-menu-item" onclick="openAdminTerminal()">
+            🔒 Terminar Admin (Modo Edição)
+        </div>
+        <div class="start-menu-item" onclick="triggerSystemReset()">
+            ⚠️ Restaurar Configuração de Fábrica
+        </div>
+        <div class="start-menu-item" onclick="toggleMuteGlobal()">
+            🔊 Alternar Som de Fundo
+        </div>
+        <div style="border-top: 1px solid #333; margin: 5px 0;"></div>
+        <div style="padding: 5px 15px; font-size: 10px; color: #555;">FAZBEAR OS v4.0.26</div>
+    </div>
+
+    <!-- BARRA DE TAREFAS -->
+    <div class="taskbar">
+        <button class="start-btn" onclick="toggleStartMenu()">
+            📟 INICIAR
+        </button>
+        <div class="taskbar-tabs" id="taskbar-active-programs">
+            <!-- Abas ativas reativas -->
+        </div>
+        <div class="system-tray">
+            <span style="color: #1b850a; font-weight: bold;">SINAL CRT: TRAVADO</span>
+            <span id="system-live-clock">00:00:00 AM</span>
+        </div>
+    </div>
+
+    <!-- VISUALIZADOR DE STORIES (ESTILO INSTAGRAM COMPLETO) -->
+    <div class="stories-container" id="story-viewer-ui">
+        <div class="story-wrapper">
+            <div class="story-bars" id="story-header-bars">
+                <!-- Barras de progresso dinâmicas -->
+            </div>
+            <div class="story-header">
+                <div class="story-user-info">
+                    <img src="" class="story-avatar" id="story-ui-avatar">
+                    <span class="story-username" id="story-ui-game-title">Capítulo</span>
                 </div>
-                <div class="flex gap-1.5">
-                    <button onclick="minimizeWindow()" class="w-6 h-5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center font-bold text-[10px] retro-button select-none">_</button>
-                    <button onclick="closeWindow()" class="w-6 h-5 bg-red-800 hover:bg-red-700 text-white flex items-center justify-center font-bold text-[11px] retro-button select-none">X</button>
+                <button class="story-close" onclick="closeStoryViewer()">×</button>
+            </div>
+
+            <!-- Áreas de toque invisíveis para avançar ou voltar -->
+            <div class="story-touch-left" onclick="navigateStory(-1)"></div>
+            <div class="story-touch-right" onclick="navigateStory(1)"></div>
+
+            <div class="story-content" id="story-ui-bg-content" onmousedown="pauseStoryProgress()" onmouseup="resumeStoryProgress()" ontouchstart="pauseStoryProgress()" ontouchend="resumeStoryProgress()">
+                <div class="story-text-area">
+                    <div class="story-title" id="story-ui-title">Nome</div>
+                    <div class="story-desc" id="story-ui-desc">Descrição explicativa...</div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY TERMINAL DOS PARA ADMIN LOGIN -->
+    <div class="admin-login-overlay" id="admin-login-terminal">
+        <div class="dos-box">
+            <div>FAZBEAR ENTERTAINMENT INC - SISTEMA DE AUTENTICAÇÃO CENTRAL</div>
+            <div>VERSÃO CORPORATIVA RESTRITA - APENAS TÉCNICOS AUTORIZADOS</div>
+            <br>
+            <div id="dos-terminal-output">Aguardando inserção de credenciais...</div>
             
-            <!-- Window Main Content Area -->
-            <div id="window-content-body" class="flex-grow p-4 md:p-6 overflow-y-auto bg-zinc-950/95">
-                <!-- App view (Details/Wiki/CMS) renders here inside the system window -->
+            <div class="dos-input-line" id="dos-user-row">
+                <span>USER ID></span>
+                <input type="text" class="dos-input" id="dos-username-input" autocomplete="off" autofocus>
             </div>
-        </div>
-
-        <!-- SYSTEM TASKBAR -->
-        <footer class="h-14 bg-zinc-900 border-t-4 border-zinc-800 px-3 flex items-center justify-between z-30 select-none relative">
-            <div class="flex items-center gap-2">
-                <!-- Retro Start Button -->
-                <button onclick="toggleStartMenu()" class="px-3.5 py-1.5 bg-red-800 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 retro-button">
-                    <i class="fa-solid fa-skull"></i>
-                    <span>INICIAR</span>
-                </button>
-
-                <!-- Shortcut to active window inside Taskbar -->
-                <button id="taskbar-active-program" onclick="restoreWindow()" class="hidden px-3 py-1.5 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 text-xs text-zinc-300 max-w-[180px] md:max-w-[240px] truncate rounded-none font-bold">
-                    <span class="w-2 h-2 bg-red-500 rounded-full inline-block mr-1.5"></span>
-                    <span id="taskbar-active-program-name">Visualizador</span>
-                </button>
-            </div>
-
-            <!-- Operating Info -->
-            <div class="hidden lg:flex items-center gap-3 text-xs text-zinc-500">
-                <span class="border-r border-zinc-800 pr-3">FAZBEAR INC © 1983-2026</span>
-                <span class="flex items-center gap-1.5 text-yellow-600">
-                    <i class="fa-solid fa-triangle-exclamation"></i> SEGURANÇA MÁXIMA SINALIZADA
-                </span>
-            </div>
-
-            <!-- System Tray -->
-            <div class="flex items-center gap-3 bg-zinc-950 px-3 py-1 border border-zinc-800 text-zinc-400 text-xs">
-                <!-- Global sound cassette info -->
-                <span class="hidden md:inline-block pr-2 border-r border-zinc-800 text-[10px] text-green-500 font-bold uppercase tracking-widest">
-                    CRT: SEGURO
-                </span>
-                
-                <!-- Digital System Clock -->
-                <span class="font-bold flex items-center gap-1 text-green-500">
-                    <i class="fa-solid fa-clock"></i>
-                    <span id="system-clock-display">00:00:00</span>
-                </span>
-            </div>
-
-            <!-- DYNAMIC START MENU POPUP -->
-            <div id="start-menu-dropdown" class="absolute bottom-16 left-3 w-64 bg-zinc-900 border-2 border-zinc-700 p-2 space-y-1.5 hidden shadow-2xl z-40">
-                <div class="p-2 border-b-2 border-zinc-950 bg-red-950/20 text-center">
-                    <p class="text-[10px] text-red-500 font-extrabold uppercase tracking-widest">Fazbear OS Menu</p>
-                </div>
-                <!-- Admin Lock Switch -->
-                <button onclick="triggerEditModeAuth(); toggleStartMenu();" class="w-full text-left p-2 hover:bg-zinc-800 flex items-center justify-between text-xs transition">
-                    <span class="flex items-center gap-2 text-zinc-300">
-                        <i id="lock-icon" class="fa-solid fa-lock text-yellow-500"></i> Modo Admin
-                    </span>
-                    <span id="admin-status-text" class="text-[10px] text-zinc-500 uppercase">Bloqueado</span>
-                </button>
-                <!-- Add New FNaF Game Shortcut -->
-                <button onclick="checkAuthAndAction(initiateNewGameCreation); toggleStartMenu();" class="w-full text-left p-2 hover:bg-zinc-800 flex items-center gap-2 text-xs transition text-zinc-300">
-                    <i class="fa-solid fa-plus text-red-500"></i> Criar Novo Capítulo
-                </button>
-                <!-- Backup Tools -->
-                <button onclick="openBackupModal(); toggleStartMenu();" class="w-full text-left p-2 hover:bg-zinc-800 flex items-center gap-2 text-xs transition text-zinc-300">
-                    <i class="fa-solid fa-database text-blue-500"></i> Painel de Backups
-                </button>
-                <hr class="border-zinc-800">
-                <!-- Wipe System -->
-                <button onclick="resetToDefaults(); toggleStartMenu();" class="w-full text-left p-2 hover:bg-red-950/30 flex items-center gap-2 text-xs transition text-red-500">
-                    <i class="fa-solid fa-rotate-left"></i> Reiniciar Terminal
-                </button>
-            </div>
-        </footer>
-    </div>
-
-    <!-- GLOBAL NOTIFICATION TOAST -->
-    <div id="toast" class="fixed bottom-20 right-4 bg-zinc-900 border-2 border-red-600 text-red-400 px-4 py-3 rounded-none shadow-2xl transition-all transform translate-y-20 opacity-0 z-50 flex items-center gap-3 text-xs font-mono">
-        <i class="fa-solid fa-circle-notch fa-spin"></i>
-        <span id="toast-text">Salvando dados no sistema...</span>
-    </div>
-
-    <!-- ADMIN SECURITY SIGNIN GATE -->
-    <div id="auth-modal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 z-50 hidden backdrop-blur-md">
-        <div class="bg-zinc-950 border-2 border-red-600 rounded-none max-w-sm w-full p-6 space-y-6 shadow-[0_0_30px_rgba(220,38,38,0.2)]">
-            <div class="text-center space-y-2">
-                <i class="fa-solid fa-shield-halved text-4xl text-red-600 blink-red"></i>
-                <h3 class="text-lg font-bold text-red-500 font-mono uppercase tracking-widest">ACESSO ADMINISTRAÇÃO</h3>
-                <p class="text-[10px] text-zinc-500">Insira credenciais para liberar as permissões de edição no terminal.</p>
-            </div>
-
-            <form onsubmit="handleAuthSubmit(event)" class="space-y-4 text-xs font-mono">
-                <div class="space-y-1">
-                    <label class="block text-[10px] uppercase text-zinc-400">Usuário Operador</label>
-                    <input type="text" id="auth-username" required class="w-full bg-zinc-900 border border-zinc-800 rounded-none p-2.5 text-green-500 focus:outline-none focus:border-red-500" placeholder="admin">
-                </div>
-
-                <div class="space-y-1">
-                    <label class="block text-[10px] uppercase text-zinc-400">Senha de Acesso</label>
-                    <input type="password" id="auth-password" required class="w-full bg-zinc-900 border border-zinc-800 rounded-none p-2.5 text-green-500 focus:outline-none focus:border-red-500" placeholder="••••••••">
-                    <p class="text-[9px] text-zinc-600 italic">Dica: Usuário "admin" e senha "fazbear1983"</p>
-                </div>
-
-                <div id="auth-error-msg" class="hidden text-xs text-red-500 text-center font-bold">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Chave incorreta. Acesso Negado.
-                </div>
-
-                <div class="flex gap-2 justify-end pt-2">
-                    <button type="button" onclick="closeAuthModal()" class="px-4 py-2 bg-zinc-900 text-zinc-400 text-[10px] hover:bg-zinc-800">CANCELAR</button>
-                    <button type="submit" class="px-5 py-2 bg-red-800 text-white font-bold text-[10px] hover:bg-red-700 retro-button">AUTENTICAR</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- INSTAGRAM-STORIES CONTAINER -->
-    <div id="stories-viewer" class="fixed inset-0 bg-black/98 z-50 flex items-center justify-center p-0 md:p-4 hidden backdrop-blur-lg">
-        <div class="relative w-full h-full md:max-w-md md:h-[80vh] bg-zinc-950 border-0 md:border-2 border-red-900 md:rounded-2xl flex flex-col justify-between overflow-hidden shadow-2xl">
-            
-            <div id="stories-static-flash" class="absolute inset-0 bg-white/10 z-30 pointer-events-none opacity-0 transition-opacity"></div>
-            
-            <!-- STICKY TOP STORY CONTROL PANEL -->
-            <div class="absolute top-0 left-0 right-0 z-20 p-3 bg-gradient-to-b from-black/85 to-transparent space-y-3">
-                <div id="stories-progress-indicators" class="flex gap-1">
-                    <!-- Dynamic Progress bars -->
-                </div>
-
-                <div class="flex justify-between items-center text-white">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center font-mono font-bold text-xs text-red-500 shadow-inner" id="stories-header-avatar">
-                            F
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold tracking-wider" id="stories-header-title">FNaF Monitor</p>
-                            <p class="text-[9px] text-zinc-400 font-mono flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-red-600 blink-red"></span> ARQUIVO DE MONITORIA
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-3">
-                        <button onclick="togglePauseStory()" class="text-zinc-300 hover:text-white transition">
-                            <i id="story-pause-icon" class="fa-solid fa-pause text-xs"></i>
-                        </button>
-                        <button onclick="closeStoriesViewer()" class="text-zinc-300 hover:text-white transition">
-                            <i class="fa-solid fa-xmark text-sm"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CLICK TOUCH NAVEGATION AREAS -->
-            <div class="absolute inset-0 z-10 flex">
-                <div onclick="prevStory()" class="w-1/4 h-full cursor-pointer"></div>
-                <div onmousedown="pauseStoryOnHold()" onmouseup="resumeStoryOnRelease()" ontouchstart="pauseStoryOnHold()" ontouchend="resumeStoryOnRelease()" class="w-2/4 h-full cursor-pointer"></div>
-                <div onclick="nextStory()" class="w-1/4 h-full cursor-pointer"></div>
-            </div>
-
-            <div id="stories-content-body" class="w-full h-full flex flex-col justify-between pt-20 pb-6 px-6 relative select-none">
-                <!-- Content will inject here -->
-            </div>
-
-            <div class="bg-zinc-900 border-t border-zinc-800 p-3 text-center text-[9px] text-zinc-500 font-mono uppercase tracking-widest z-20">
-                <span class="text-red-500"><i class="fa-solid fa-circle-exclamation"></i> ALERTA</span> - NAVEGUE CLICANDO NAS LATERAIS
+            <div class="dos-input-line" id="dos-pass-row" style="display:none;">
+                <span>PASSWORD></span>
+                <input type="password" class="dos-input" id="dos-password-input" autocomplete="off">
             </div>
         </div>
     </div>
 
-    <!-- BACKUP MANAGER MODAL -->
-    <div id="backup-modal" class="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
-        <div class="bg-zinc-900 border-2 border-red-800 p-6 max-w-lg w-full space-y-6 shadow-2xl rounded-none">
-            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                <h3 class="text-lg font-bold text-red-500 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-file-export"></i> Sistema de Backups
-                </h3>
-                <button onclick="closeBackupModal()" class="text-zinc-500 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
+    <!-- MODAL DO PAINEL DE CONTROLE ADMIN -->
+    <div class="modal-backdrop" id="admin-modal-backdrop" onclick="closeAdminModal()"></div>
+    <div class="modal-admin" id="admin-dashboard-modal">
+        <h2 style="color: var(--text-color); margin-top: 0; display: flex; justify-content: space-between;">
+            <span>🛠️ TERMINAL CONFIGURADOR CLOUD</span>
+            <span style="font-size: 12px; cursor: pointer;" onclick="closeAdminModal()">[FECHAR]</span>
+        </h2>
+        <div class="system-status-indicator">STATUS: Sincronizado via Firebase Realtime Core</div>
+
+        <!-- SELEÇÃO DE AÇÃO DO GERENCIADOR -->
+        <div style="display: flex; gap: 8px; margin-bottom: 15px; background: #000; padding: 5px;">
+            <button class="game-nav-btn active" id="tab-adm-cap" onclick="switchAdminTab('capitulos')">Capítulos (FNaFs)</button>
+            <button class="game-nav-btn" id="tab-adm-item" onclick="switchAdminTab('conteudo')">Gerenciar Itens (Stories)</button>
+        </div>
+
+        <!-- FORMULÁRIO DE CAPÍTULOS -->
+        <div id="form-section-capitulos">
+            <h3>Adicionar ou Modificar Capítulo (FNaF)</h3>
+            <div class="form-group">
+                <label>ID Único do Capítulo (Ex: fnaf1, fnaf2, fnaf_custom)</label>
+                <input type="text" id="cap-id" placeholder="fnaf1">
             </div>
-            
-            <p class="text-zinc-400 text-xs font-sans leading-relaxed">
-                Exporte suas alterações ou importe arquivos de backup de outros terminais para unificar sua rede do Fazbear OS.
-            </p>
+            <div class="form-group">
+                <label>Nome do Jogo / Rótulo do Ícone</label>
+                <input type="text" id="cap-name" placeholder="FNaF 1: Original">
+            </div>
+            <div class="form-group">
+                <label>URL do Ícone do Desktop</label>
+                <input type="text" id="cap-icon" placeholder="https://url-da-imagem.com/logo.jpg">
+            </div>
+            <div class="form-group">
+                <label>URL do Papel de Parede da Janela/Fundo</label>
+                <input type="text" id="cap-bg" placeholder="https://url-da-imagem.com/office.jpg">
+            </div>
+            <div class="form-group">
+                <label>ID do Vídeo / Música do YouTube (Trilha de Fundo)</label>
+                <input type="text" id="cap-yt" placeholder="dQw4w9WgXcQ">
+            </div>
+            <div class="form-group">
+                <label>Fonte de Texto do Capítulo</label>
+                <select id="cap-font">
+                    <option value="'Courier New', Courier, monospace">Terminal Retro (Courier)</option>
+                    <option value="'Arial Black', Gadget, sans-serif">Terror Sólido (Arial Black)</option>
+                    <option value="'Impact', Charcoal, sans-serif">Impactante Assustador (Impact)</option>
+                    <option value="'Georgia', serif">Gótico Clássico (Georgia)</option>
+                </select>
+            </div>
+            <div class="admin-action-btns">
+                <button class="btn-panel" onclick="saveCapituloCloud()">Salvar / Atualizar Capítulo</button>
+                <button class="btn-panel btn-danger" onclick="deleteCapituloCloud()">Remover Capítulo</button>
+            </div>
+        </div>
 
-            <div class="space-y-2 font-mono">
-                <label class="block text-[10px] font-bold text-zinc-500 uppercase">Exportar Configurações (JSON)</label>
-                <textarea id="backup-json-data" class="w-full h-24 bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-green-500 focus:outline-none resize-none" readonly></textarea>
-                <div class="flex gap-2">
-                    <button onclick="copyBackupToClipboard()" class="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-bold rounded-none flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-copy"></i> Copiar Código
-                    </button>
-                    <button onclick="downloadBackupFile()" class="flex-1 py-1.5 bg-red-950 hover:bg-red-900 text-red-200 text-xs font-bold rounded-none flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-download"></i> Baixar Arquivo
-                    </button>
-                </div>
+        <!-- FORMULÁRIO DE CONTEÚDO DE STORIES -->
+        <div id="form-section-conteudo" style="display: none;">
+            <h3>Adicionar Histórias ou Personagens (Formato Stories)</h3>
+            <div class="form-group">
+                <label>Vincular ao Capítulo (FNaF)</label>
+                <select id="story-target-cap">
+                    <!-- Preenchido via JS -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Categoria do Story</label>
+                <select id="story-category">
+                    <option value="personagens">Animatronics (Personagens)</option>
+                    <option value="historia">Arquivos Secretos (História)</option>
+                    <option value="sobrevivencia">Câmeras e Sobrevivência (Diretrizes)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nome / Título do Story</label>
+                <input type="text" id="story-title-input" placeholder="Freddy Fazbear">
+            </div>
+            <div class="form-group">
+                <label>URL da Imagem de Fundo do Story</label>
+                <input type="text" id="story-img-input" placeholder="https://url-da-imagem.com/freddy.jpg">
+            </div>
+            <div class="form-group">
+                <label>Conteúdo / Descrição Detalhada</label>
+                <textarea id="story-desc-input" rows="4" placeholder="Escreva o comportamento, mecânica ou lore aqui..."></textarea>
+            </div>
+            <div class="admin-action-btns">
+                <button class="btn-panel" onclick="saveStoryItemCloud()">Injetar Story na Nuvem</button>
             </div>
 
-            <hr class="border-zinc-800">
-
-            <div class="space-y-2 font-mono">
-                <label class="block text-[10px] font-bold text-zinc-500 uppercase">Importar Dados</label>
-                <textarea id="import-json-data" class="w-full h-24 bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-yellow-500 focus:outline-none placeholder-zinc-800" placeholder='Cole seu código JSON aqui...'></textarea>
-                <button onclick="importBackupData()" class="w-full py-2.5 bg-yellow-600 hover:bg-yellow-700 text-black font-bold text-xs flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-file-import"></i> Carregar Configuração
-                </button>
+            <h4 style="margin-top: 20px; color: var(--text-color);">Lista de Itens Removíveis</h4>
+            <div id="admin-removable-stories-list" style="max-height: 150px; overflow-y: auto; background: #08080a; padding: 5px;">
+                <!-- Carregado dinamicamente -->
             </div>
         </div>
     </div>
 
-    <!-- ADD/EDIT GAME CONFIG MODAL -->
-    <div id="game-modal" class="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-40 hidden backdrop-blur-sm overflow-y-auto">
-        <div class="bg-zinc-900 border-2 border-zinc-700 p-6 max-w-2xl w-full space-y-6 my-8 shadow-2xl">
-            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                <h3 id="game-modal-title" class="text-md font-bold text-zinc-100 uppercase tracking-wider">
-                    Dossiê do Capítulo
-                </h3>
-                <button onclick="closeGameModal()" class="text-zinc-500 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
-            </div>
 
-            <form id="game-form" onsubmit="saveGame(event)" class="space-y-4 text-[11px]">
-                <input type="hidden" id="modal-game-id">
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-zinc-400 uppercase">Nome do Capítulo *</label>
-                        <input type="text" id="modal-game-title" required class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 focus:outline-none focus:border-red-500 text-white" placeholder="Ex: Five Nights at Freddy's 1">
-                    </div>
-                    
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-zinc-400 uppercase">Slogan</label>
-                        <input type="text" id="modal-game-subtitle" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 focus:outline-none focus:border-red-500 text-white" placeholder="Ex: Onde o pesadelo começou">
-                    </div>
-                </div>
+    <!-- CONFIGURAÇÕES MODULARES DO FIREBASE FIRESTORE SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-zinc-400 uppercase">Ícone de Capa (URL)</label>
-                        <input type="text" id="modal-game-cover" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 focus:outline-none focus:border-red-500 text-white" placeholder="https://exemplo.com/capa.jpg">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-zinc-400 uppercase">Wallpaper do Sistema (URL)</label>
-                        <input type="text" id="modal-game-wallpaper" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 focus:outline-none focus:border-red-500 text-white" placeholder="https://exemplo.com/fundo.jpg">
-                    </div>
-                </div>
+        // Credenciais fornecidas pelo usuário Gabriela vinculadas ao projeto site-fnaf-fazbear
+        const firebaseConfig = {
+            apiKey: "AIzaSyCIMeI15Ta-_mEfAHp4dwIejgx7x5t1lbA",
+            authDomain: "site-fnaf-fazbear.firebaseapp.com",
+            projectId: "site-fnaf-fazbear",
+            storageBucket: "site-fnaf-fazbear.firebasestorage.app",
+            messagingSenderId: "203005114626",
+            appId: "1:203005114626:web:1f84024724295b54d5aa1b",
+            measurementId: "G-LT4DXL9B8H"
+        };
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/40 p-3 rounded border border-zinc-800">
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-red-400 uppercase flex items-center gap-1.5">
-                            <i class="fa-brands fa-youtube text-red-500"></i> Música de Fundo (ID ou Link do YouTube)
-                        </label>
-                        <input type="text" id="modal-game-youtube-id" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2 focus:outline-none focus:border-red-500 text-green-400" placeholder="Ex: L161M-FwS4I">
-                        <p class="text-[9px] text-zinc-500">Atribuirá áudio atmosférico ao abrir este programa de FNaF.</p>
-                    </div>
+        // Inicializando canais da Nuvem
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-zinc-400 uppercase">Tipografia Visual</label>
-                        <select id="modal-game-font" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2 focus:outline-none text-zinc-300">
-                            <option value="monospace">Mono-Espaçada (Terminal)</option>
-                            <option value="Creepster">Terror Clássico (Creepster)</option>
-                            <option value="Special Elite">Máquina de Escrever (Special Elite)</option>
-                            <option value="VT323">Pixel Art (VT323)</option>
-                            <option value="Nosifer">Sangrento Extremo (Nosifer)</option>
-                            <option value="Rubik Glitch">Glitch Digital (Rubik Glitch)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="space-y-1">
-                    <label class="block text-xs font-bold text-zinc-400 uppercase">Vibe Cromática</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        <label class="flex items-center gap-2 p-2 bg-zinc-950 border border-zinc-800 rounded cursor-pointer hover:border-zinc-700">
-                            <input type="radio" name="modal-game-vibe" value="classic" checked>
-                            <span class="text-[10px]">FNaF 1 (Vermelho)</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 bg-zinc-950 border border-zinc-800 rounded cursor-pointer hover:border-zinc-700">
-                            <input type="radio" name="modal-game-vibe" value="toy">
-                            <span class="text-[10px]">FNaF 2 (Ciano Neon)</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 bg-zinc-950 border border-zinc-800 rounded cursor-pointer hover:border-zinc-700">
-                            <input type="radio" name="modal-game-vibe" value="rotten">
-                            <span class="text-[10px]">FNaF 3 (Verde Lodo)</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 bg-zinc-950 border border-zinc-800 rounded cursor-pointer hover:border-zinc-700">
-                            <input type="radio" name="modal-game-vibe" value="shadow">
-                            <span class="text-[10px]">FNaF 4 (Roxo Pesadelo)</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 bg-zinc-950 border border-zinc-800 rounded cursor-pointer hover:border-zinc-700">
-                            <input type="radio" name="modal-game-vibe" value="cyber">
-                            <span class="text-[10px]">Sister Location (Ciano Metálico)</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 bg-zinc-950 border border-zinc-800 rounded cursor-pointer hover:border-zinc-700">
-                            <input type="radio" name="modal-game-vibe" value="custom">
-                            <span class="text-[10px]">Cromático Livre</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div id="custom-colors-group" class="hidden grid grid-cols-1 gap-4 p-3 bg-zinc-950 rounded border border-zinc-800">
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-zinc-400 uppercase">Cor Principal (Hex)</label>
-                        <input type="color" id="modal-game-color-primary" value="#e11d48" class="w-full bg-zinc-900 border border-zinc-800 rounded p-1 h-10 cursor-pointer">
-                    </div>
-                </div>
-
-                <div class="space-y-1">
-                    <label class="block text-xs font-bold text-zinc-400 uppercase">Resumo / História de Entrada</label>
-                    <textarea id="modal-game-desc" rows="3" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 focus:outline-none focus:border-red-500 text-white font-sans text-xs" placeholder="Ar atmosférico e premissas básicas do capítulo..."></textarea>
-                </div>
-
-                <div class="flex gap-2 justify-end pt-3">
-                    <button type="button" onclick="closeGameModal()" class="px-4 py-2 bg-zinc-800 text-zinc-400 rounded-none hover:bg-zinc-700">CANCELAR</button>
-                    <button type="submit" class="px-5 py-2 bg-green-600 text-white font-bold rounded-none hover:bg-green-700 retro-button">SALVAR DADOS</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- CORE SCRIPTS AND DATABASE ENGINE -->
-    <script>
-        // Default models loaded automatically
-        const DEFAULT_FNAF_DATABASE = [
-            {
-                id: "fnaf-1",
-                title: "Five Nights at Freddy's 1",
-                subtitle: "Onde o pesadelo começou",
-                cover: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=300&auto=format&fit=crop",
-                wallpaper: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop",
-                youtubeId: "L161M-FwS4I", 
-                theme: {
-                    vibe: "classic",
-                    primary: "#dc2626",
-                    font: "monospace"
+        // DATA STORE CENTRAL VIRTUAL DE BACKUP DEFAULT
+        const defaultDataStructure = {
+            capitulos: {
+                fnaf1: {
+                    id: "fnaf1",
+                    name: "FNaF 1: Classic",
+                    icon: "https://images.uncyc.org/pt/thumb/d/d4/Freddy_head.png/250px-Freddy_head.png",
+                    bg: "https://i.ytimg.com/vi/0MvU_S0E4hA/maxresdefault.jpg",
+                    ytVideoId: "E0_A-Nia3g0",
+                    fontStyle: "'Courier New', Courier, monospace"
                 },
-                about: {
-                    title: "A Pizzaria Freddy Fazbear",
-                    intro: "Bem-vindo ao seu novo emprego de verão na Freddy Fazbear's Pizza, onde crianças e adultos se divertem com entretenimento e comida a perder de vista! O principal recurso é, claro, Freddy Fazbear e seus dois amigos. Eles são robôs animatrônicos, programados para agradar a multidão!",
-                    history: "Porém, o comportamento dos robôs tornou-se um tanto imprevisível à noite, e era muito mais barato contratá-lo como guarda de segurança do que encontrar um eletricista de verdade. De seu pequeno escritório, você deve observar as câmeras de segurança com cuidado. Você tem uma quantidade muito limitada de eletricidade que tem permissão para usar por noite (cortes no orçamento corporativo, você sabe). Isso significa que quando você ficar sem energia para a noite - chega de portas de segurança e chega de luzes! Se algo não estiver certo - ou seja, se o Freddy e seus amigos não estiverem em seus devidos lugares, você deve encontrá-los nos monitores e se proteger se necessário!",
-                    curiosities: [
-                        "Diz a lenda que as crianças desapareceram na pizzaria anos atrás e nunca foram encontradas.",
-                        "O jogo possui uma mecânica secreta chamada 'Golden Freddy' que pode travar o jogo.",
-                        "As risadas que você ouve pertencem a Freddy e aceleram à medida que ele se move."
-                    ]
+                fnaf2: {
+                    id: "fnaf2",
+                    name: "FNaF 2: Toy's",
+                    icon: "https://i.pinimg.com/236xl/9e/3c/61/9e3c6131b790d5bc5fc8a735071df241.jpg",
+                    bg: "https://i.ytimg.com/vi/LpG2vH2Kymg/maxresdefault.jpg",
+                    ytVideoId: "d6v_Wd4G408",
+                    fontStyle: "'Impact', Charcoal, sans-serif"
                 },
-                characters: [
-                    {
-                        id: "fnaf1-freddy",
-                        name: "Freddy Fazbear",
-                        image: "https://placehold.co/300x400/18181b/ef4444?text=Freddy+🐻",
-                        role: "Líder e Cantor da Banda Fazbear",
-                        behavior: "Ele fica inativo nas primeiras noites para analisar seus padrões. Quando ativo (Noite 3+), ele se esconde nas sombras (você só vê seus olhos brilhando) e segue um caminho predefinido até seu corredor direito.",
-                        counter: "Ele dá uma risada profunda cada vez que muda de sala. Se ouvir a risada perto de seu escritório, mude a câmera para ele para atrasá-lo ou feche a porta direita imediatamente."
-                    },
-                    {
-                        id: "fnaf1-bonnie",
-                        name: "Bonnie",
-                        image: "https://placehold.co/300x400/18181b/3b82f6?text=Bonnie+🐰",
-                        role: "Guitarrista da Banda",
-                        behavior: "Geralmente é o primeiro a se mover na Noite 1. Ele ataca estritamente pelo corredor esquerdo e pode se teletransportar rapidamente entre salas, ignorando a ordem natural.",
-                        counter: "Acenda a luz do corredor esquerdo periodicamente. Se Bonnie estiver parado na janela, feche a porta esquerda imediatamente. Não abra até que ele suma do vidro."
-                    },
-                    {
-                        id: "fnaf1-chica",
-                        name: "Chica",
-                        image: "https://placehold.co/300x400/18181b/eab308?text=Chica+🐥",
-                        role: "Cantora de Apoio / Mascote do 'Let's Eat!'",
-                        behavior: "Ela ataca pelo corredor direito. Move-se de forma mais lenta e deliberada do que Bonnie, e gosta de fazer barulho de pratos na cozinha.",
-                        counter: "Monitore o corredor direito acendendo a luz da janela correspondente. Ao vê-la lá, bata a porta direita e espere até que ela saia do corredor."
-                    },
-                    {
-                        id: "fnaf1-foxy",
-                        name: "Foxy the Pirate Fox",
-                        image: "https://placehold.co/300x400/18181b/b91c1c?text=Foxy+🦊",
-                        role: "Atração Isolada na Enseada do Pirata",
-                        behavior: "Ele odeia ser muito ou pouco observado. Ele emerge lentamente de trás da cortina na Pirate Cove e inicia uma corrida insana pelo corredor esquerdo em direção ao seu escritório.",
-                        counter: "Cheque a Pirate Cove periodicamente para mantê-lo calmo. Se a cortina estiver aberta e ele tiver sumido, FECHE a porta esquerda imediatamente antes de olhar o Corredor Oeste (Câmera 2A)!"
-                    }
-                ],
-                survivalGuide: [
-                    {
-                        title: "Gerenciamento de Energia",
-                        desc: "Nunca mantenha câmeras abertas sem necessidade. Cada segundo com monitores ligados ou portas fechadas drena sua preciosa bateria de emergência rápida demais."
-                    },
-                    {
-                        title: "Estratégia do Quarto Segundo",
-                        desc: "Você não precisa olhar todas as câmeras. Foque na Pirate Cove (Foxy) e nas luzes das portas (Chica e Bonnie). Freddy pode ser evitado monitorando sua câmera do palco principal."
-                    }
-                ]
-            },
-            {
-                id: "fnaf-2",
-                title: "Five Nights at Freddy's 2",
-                subtitle: "Sem portas para te salvar",
-                cover: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop",
-                wallpaper: "https://images.unsplash.com/photo-1501183007986-d0d080b147f9?q=80&w=1200&auto=format&fit=crop",
-                youtubeId: "8bH2p3M8S9A", 
-                theme: {
-                    vibe: "toy",
-                    primary: "#06b6d4",
-                    font: "VT323"
-                },
-                about: {
-                    title: "A Grande Reinauguração",
-                    intro: "A nova e aprimorada Freddy Fazbear's Pizza abre suas portas! Animatrônicos antigos ganham a companhia de um novo elenco de personagens. Eles são amigáveis às crianças, atualizados com tecnologia de reconhecimento facial de ponta e prometem um show seguro!",
-                    history: "Como o novo guarda de segurança trabalhando à noite, seu trabalho é monitorar as câmeras e garantir que nada dê errado. O antigo guarda reclamou de personagens tentando entrar no escritório (ele foi transferido para o turno do dia). Para facilitar seu trabalho, você recebeu sua própria cabeça de Freddy Fazbear vazia, que deve enganar os animatrônicos se eles entrarem por engano no seu escritório.",
-                    curiosities: [
-                        "Não há portas neste escritório! Você está totalmente exposto.",
-                        "The Puppet é controlado exclusivamente por uma caixinha de música na câmera do Prize Corner.",
-                        "Introduziu os minigames em estilo Atari de 8 bits após a morte do jogador."
-                    ]
-                },
-                characters: [
-                    {
-                        id: "fnaf2-toyfreddy",
-                        name: "Toy Freddy",
-                        image: "https://placehold.co/300x400/18181b/06b6d4?text=Toy+Freddy+🐻",
-                        role: "Astro Principal de Plástico",
-                        behavior: "Começa no palco e vem pelo corredor central principal. Fica cada vez mais perto de sua mesa.",
-                        counter: "Ao vê-lo em sua frente na sala com luzes piscando, coloque a Máscara do Freddy instantaneamente para fazê-lo ir embora."
-                    },
-                    {
-                        id: "fnaf2-puppet",
-                        name: "The Puppet",
-                        image: "https://placehold.co/300x400/18181b/ec4899?text=Puppet+🎭",
-                        role: "Distribuidor de Presentes",
-                        behavior: "Ignora completamente a Máscara do Freddy. Se a caixa de música parar de jogar, ele sairá lentamente de sua caixa e fará um ataque indefensável.",
-                        counter: "Monitore constantemente a Câmera 11 (Prize Corner) e mantenha pressionado o botão para dar corda na caixa de música."
-                    },
-                    {
-                        id: "fnaf2-mangle",
-                        name: "Mangle",
-                        image: "https://placehold.co/300x400/18181b/f472b6?text=Mangle+🦊",
-                        role: "Atração de Desmontar e Montar",
-                        behavior: "Um amálgama de peças que escala pelas paredes e teto. Quando se aproxima, emite uma interferência de rádio distorcida muito alta.",
-                        counter: "Se ouvir o chiado de rádio no seu escritório ou a vir pendurada no teto pela entrada de ar, coloque a máscara até que o som desapareça por completo."
-                    }
-                ],
-                survivalGuide: [
-                    {
-                        title: "O Loop de Sobrevivência",
-                        desc: "Dê corda na caixa de música -> Abaixe o tablet -> Coloque a máscara imediatamente por 1 segundo -> Use a lanterna no corredor -> Cheque as duas saídas de ar laterais com as luzes. Repita."
-                    },
-                    {
-                        title: "Lanterna vs Withered Foxy",
-                        desc: "O Foxy antigo está quebrado e não liga para sua máscara. Ele só pode ser impedido piscando repetidamente sua lanterna em seu rosto no corredor central."
-                    }
-                ]
-            },
-            {
-                id: "fnaf-3",
-                title: "Five Nights at Freddy's 3",
-                subtitle: "Trinta anos depois...",
-                cover: "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=600&auto=format&fit=crop",
-                wallpaper: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop",
-                youtubeId: "W7M-f7gG8E4", 
-                theme: {
-                    vibe: "rotten",
-                    primary: "#84cc16",
-                    font: "Special Elite"
-                },
-                about: {
-                    title: "A Atração de Terror: Fazbear's Fright",
-                    intro: "Trinta anos após a Freddy Fazbear's Pizza fechar suas portas, os eventos ocorridos lá tornaram-se nada mais que rumores de infância. Mas os proprietários da 'Fazbear's Fright: The Horror Attraction' estão determinados a reviver a lenda!",
-                    history: "Eles vasculharam as ruínas em busca de qualquer coisa que pudesse ter sobrevivido a décadas de abandono. De início, encontraram apenas conchas vazias, uma mão de metal e um boneco de papelão... até que encontraram uma relíquia real: um animatrônico verde, apodrecido e letal chamado Springtrap.",
-                    curiosities: [
-                        "Há apenas um animatrônico real que pode te matar neste jogo: Springtrap.",
-                        "Os outros animatrônicos são fantasmas (Phantoms) que quebram seus sistemas e causam pânico.",
-                        "O jogador deve reparar constantemente três sistemas internos: Áudio, Câmeras e Ventilação."
-                    ]
-                },
-                characters: [
-                    {
-                        id: "fnaf3-springtrap",
-                        name: "Springtrap",
-                        image: "https://placehold.co/300x400/18181b/84cc16?text=Springtrap+🐰",
-                        role: "Única Relíquia Sobrevivente / Hospedeiro de William Afton",
-                        behavior: "Extremamente inteligente. Ele usa dutos de ventilação e fendas nas paredes para flanquear seu escritório. Tenta se esconder nos cantos das câmeras.",
-                        counter: "Use o sistema de áudio para reproduzir a voz de Balloon Boy em salas adjacentes a ele. Ele é atraído pelo som de crianças. Se ele entrar nos dutos, sele o duto correspondente imediatamente pela câmera."
-                    },
-                    {
-                        id: "fnaf3-phantomfreddy",
-                        name: "Phantom Freddy",
-                        image: "https://placehold.co/300x400/18181b/65a30d?text=Phantom+Freddy+👻",
-                        role: "Alucinação de Medo",
-                        behavior: "Aparece andando lentamente do lado de fora de sua janela de vidro principal.",
-                        counter: "Ignore-o completamente. Se você o encarar por muito tempo, ele se abaixará e aplicará um jumpscare que desativa seu sistema de ventilação."
-                    }
-                ],
-                survivalGuide: [
-                    {
-                        title: "Selamento de Ventilação Preventivo",
-                        desc: "Sempre que localizar Springtrap perto de uma entrada de duto, dê duplo-clique na respectiva câmera de ventilação para fechá-la antes que ele entre."
-                    },
-                    {
-                        title: "Uso Estratégico do Áudio",
-                        desc: "Não jogue o áudio longe demais de Springtrap ou ele irá ignorá-lo. Mova-o sempre uma sala adjacente de cada vez para puxá-lo como se estivesse em uma coleira invisível."
-                    }
-                ]
-            }
-        ];
-
-        let fnafDatabase = [];
-        let isEditMode = false;
-        let selectedGameId = null;
-        let activeTab = 'about'; 
-        let isWindowMinimized = false;
-        
-        const DEFAULT_ADMIN_USER = "admin";
-        const DEFAULT_ADMIN_PASS = "fazbear1983";
-
-        // Stories System variables
-        let currentStoriesList = []; 
-        let currentStoryIndex = 0;
-        let storyProgressTimer = null;
-        let storyProgressPercent = 0;
-        let isStoryPaused = false;
-        const STORY_DURATION = 7000; 
-
-        // YouTube Audio controllers
-        let ytPlayer = null;
-        let ytPlayerReady = false;
-        let currentLoadedTrackId = null;
-
-        // Initialize OS database
-        function initDatabase() {
-            const savedData = localStorage.getItem('fazbear_hub_db_v5');
-            if (savedData) {
-                try {
-                    fnafDatabase = JSON.parse(savedData);
-                } catch(e) {
-                    fnafDatabase = JSON.parse(JSON.stringify(DEFAULT_FNAF_DATABASE));
+                fnaf3: {
+                    id: "fnaf3",
+                    name: "FNaF 3: Horror",
+                    icon: "https://i.pinimg.com/736x/8e/31/6f/8e316fc1bfe7c823bfbe28516ee89fe1.jpg",
+                    bg: "https://i.ytimg.com/vi/821fM8pY6p8/maxresdefault.jpg",
+                    ytVideoId: "3e_0_X7C0_0",
+                    fontStyle: "'Arial Black', Gadget, sans-serif"
                 }
-            } else {
-                fnafDatabase = JSON.parse(JSON.stringify(DEFAULT_FNAF_DATABASE));
-                localStorage.setItem('fazbear_hub_db_v5', JSON.stringify(fnafDatabase));
-            }
-        }
+            },
+            stories: [
+                { id: "s1", capId: "fnaf1", category: "personagens", title: "Freddy Fazbear", img: "https://i.pinimg.com/736x/cc/8f/94/cc8f94d9b05f242fc26da797e88ff267.jpg", desc: "Líder da banda. Ele se move pelas sombras do corredor direito. Se a energia acabar, seu rosto acenderá tocando a marcha do Toreador antes do ataque!" },
+                { id: "s2", capId: "fnaf1", category: "personagens", title: "Bonnie The Bunny", img: "https://i.pinimg.com/736x/cb/dc/ee/cbdceecd568c0f06536328328c05763a.jpg", desc: "O mais ativo nas primeiras noites. Sempre ataca pela porta esquerda. Monitore o ponto cego da luz!" },
+                { id: "s3", capId: "fnaf1", category: "historia", title: "A Mordida de 87", img: "https://static.wikia.nocookie.net/freddy-fazbears-pizza/images/1/10/Freddy_In_The_Dark_FNaF1.png", desc: "Um trágico incidente ocorrido em 1987 onde um animatrônico mordeu o lobo frontal de uma vítima, mudando as regras de mobilidade diurna para sempre." },
+                { id: "s4", capId: "fnaf1", category: "sobrevivencia", title: "Gestão Elétrica", img: "https://i.ytimg.com/vi/0MvU_S0E4hA/maxresdefault.jpg", desc: "Regra de ouro: Não mantenha as câmeras erguidas desnecessariamente. Use as luzes das portas em rajadas rápidas para economizar ampéres." },
+                { id: "s5", capId: "fnaf2", category: "personagens", title: "Toy Chica", img: "https://i.pinimg.com/originals/17/be/bc/17bebc39d3326ebc8c9779df9d81fc20.jpg", desc: "Ao sair do palco principal, ela remove o bico. Entra direto pela tubulação de ventilação esquerda. Coloque a máscara imediatamente!" }
+            ]
+        };
 
-        function saveDatabase() {
-            localStorage.setItem('fazbear_hub_db_v5', JSON.stringify(fnafDatabase));
-            showToast("Alterações do sistema gravadas com sucesso.");
-        }
+        // Escopo global de dados em execução
+        window.fazbearCloudData = { capitulos: {}, stories: [] };
 
-        function resetToDefaults() {
-            if(confirm("Deseja redefinir todo o Fazbear OS de volta ao modelo corporativo de fábrica? Todas as customizações serão apagadas!")) {
-                fnafDatabase = JSON.parse(JSON.stringify(DEFAULT_FNAF_DATABASE));
-                saveDatabase();
-                window.location.reload();
-            }
-        }
-
-        // Start live operating clock
-        function startSystemClock() {
-            setInterval(() => {
-                const clock = document.getElementById('system-clock-display');
-                if (clock) {
-                    const now = new Date();
-                    clock.innerText = now.toTimeString().split(' ')[0];
-                }
-            }, 1000);
-        }
-
-        // Start Menu Toggle
-        function toggleStartMenu() {
-            const menu = document.getElementById('start-menu-dropdown');
-            if (menu) {
-                menu.classList.toggle('hidden');
-            }
-        }
-
-        // Close dropdown when clicking outside
-        window.addEventListener('click', function(e) {
-            const menu = document.getElementById('start-menu-dropdown');
-            const startBtn = e.target.closest('button');
-            if (menu && !menu.classList.contains('hidden') && (!startBtn || !startBtn.innerText.includes('INICIAR'))) {
-                menu.classList.add('hidden');
-            }
-        });
-
-        // Render desktop retro icons dynamically
-        function renderDesktopIcons() {
-            const container = document.getElementById('desktop-icons-container');
-            if (!container) return;
-            container.innerHTML = '';
-
-            fnafDatabase.forEach(game => {
-                const color = getVibeColor(game.theme.vibe, game.theme.primary);
-                const gameImage = game.cover || `https://placehold.co/100x100/111/fff?text=${encodeURIComponent(game.title)}`;
-
-                const icon = document.createElement('div');
-                icon.className = `flex flex-col items-center justify-center p-3 cursor-pointer group text-center hover:bg-white/10 border border-transparent hover:border-zinc-700 select-none transition-all w-24 sm:w-28 mx-auto`;
-                icon.setAttribute('onclick', `openGameWindow('${game.id}')`);
-
-                icon.innerHTML = `
-                    <div class="w-12 h-12 md:w-14 md:h-14 bg-zinc-950 border-2 rounded-none p-0.5 flex items-center justify-center shadow-lg relative overflow-hidden" style="border-color: ${color}90">
-                        <img src="${gameImage}" alt="${game.title}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all" onerror="this.src='https://placehold.co/100x100/18181b/ff0000?text=FNaF'">
-                        <span class="absolute bottom-0 right-0 w-2 h-2" style="background-color: ${color}"></span>
-                    </div>
-                    <span class="text-[10px] md:text-xs text-zinc-300 group-hover:text-white font-bold tracking-tight leading-tight mt-2 uppercase font-mono truncate w-full">
-                        ${game.title.replace("Five Nights at Freddy's", "FNaF")}
-                    </span>
-                `;
-                container.appendChild(icon);
-            });
-
-            // "Add New Chapter" desktop icon (Only if admin is logged in)
-            if (isEditMode) {
-                const addIcon = document.createElement('div');
-                addIcon.className = `flex flex-col items-center justify-center p-3 cursor-pointer group text-center hover:bg-green-950/20 border border-transparent hover:border-green-800 select-none transition-all w-24 sm:w-28 mx-auto`;
-                addIcon.setAttribute('onclick', `initiateNewGameCreation()`);
-                addIcon.innerHTML = `
-                    <div class="w-12 h-12 md:w-14 md:h-14 bg-zinc-950 border-2 border-dashed border-green-600 flex items-center justify-center shadow-lg">
-                        <i class="fa-solid fa-plus-circle text-green-500 text-lg group-hover:scale-110 transition-transform"></i>
-                    </div>
-                    <span class="text-[10px] md:text-xs text-green-400 group-hover:text-green-300 font-bold tracking-tight leading-tight mt-2 uppercase">
-                        Novo Capítulo
-                    </span>
-                `;
-                container.appendChild(addIcon);
-            }
-        }
-
-        // System Window controls
-        function openGameWindow(gameId) {
-            selectedGameId = gameId;
-            isWindowMinimized = false;
-            activeTab = 'about';
-
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-
-            // Set background wallpaper of the whole desktop to match current FNaF game
-            if (game.wallpaper) {
-                document.body.style.backgroundImage = `url('${game.wallpaper}')`;
-            } else {
-                document.body.style.backgroundImage = "none";
-            }
-
-            // Load Youtube audio
-            if (game.youtubeId) {
-                playYoutubeTrack(game.youtubeId);
-            } else {
-                stopYoutubeTrack();
-            }
-
-            // Update window details
-            const win = document.getElementById('desktop-window');
-            const title = document.getElementById('window-title-text');
-            const taskbarProg = document.getElementById('taskbar-active-program');
-            const taskbarName = document.getElementById('taskbar-active-program-name');
-
-            title.innerText = `FAZBEAR TERMINAL - [ ${game.title} ]`;
-            taskbarName.innerText = game.title.replace("Five Nights at Freddy's", "FNaF");
-            taskbarProg.classList.remove('hidden');
-
-            win.classList.remove('hidden');
-            win.classList.remove('opacity-0');
-            win.classList.add('flex');
-
-            renderGameHub(gameId);
-        }
-
-        function closeWindow() {
-            const win = document.getElementById('desktop-window');
-            const taskbarProg = document.getElementById('taskbar-active-program');
-            
-            selectedGameId = null;
-            stopYoutubeTrack();
-            document.body.style.backgroundImage = "none";
-
-            win.classList.add('hidden');
-            win.classList.remove('flex');
-            taskbarProg.classList.add('hidden');
-        }
-
-        function minimizeWindow() {
-            const win = document.getElementById('desktop-window');
-            win.classList.add('hidden');
-            win.classList.remove('flex');
-            isWindowMinimized = true;
-            showToast("Janela minimizada na Barra de Tarefas.");
-        }
-
-        function restoreWindow() {
-            if (selectedGameId) {
-                const win = document.getElementById('desktop-window');
-                win.classList.remove('hidden');
-                win.classList.add('flex');
-                isWindowMinimized = false;
-            }
-        }
-
-        // Security gate authentication
-        function triggerEditModeAuth() {
-            if (isEditMode) {
-                isEditMode = false;
-                updateAdminUIState();
-                showToast("Sessão de Administrador finalizada.");
-            } else {
-                document.getElementById('auth-username').value = '';
-                document.getElementById('auth-password').value = '';
-                document.getElementById('auth-error-msg').classList.add('hidden');
-                document.getElementById('auth-modal').classList.remove('hidden');
-            }
-        }
-
-        function closeAuthModal() {
-            document.getElementById('auth-modal').classList.add('hidden');
-        }
-
-        function handleAuthSubmit(e) {
-            e.preventDefault();
-            const user = document.getElementById('auth-username').value.trim();
-            const pass = document.getElementById('auth-password').value.trim();
-
-            if (user === DEFAULT_ADMIN_USER && pass === DEFAULT_ADMIN_PASS) {
-                isEditMode = true;
-                updateAdminUIState();
-                closeAuthModal();
-                showToast("Terminal Autorizado! Ferramentas de desenvolvimento liberadas.");
-            } else {
-                const errMsg = document.getElementById('auth-error-msg');
-                errMsg.classList.remove('hidden');
-                if (navigator.vibrate) navigator.vibrate(200);
-            }
-        }
-
-        function updateAdminUIState() {
-            const indicator = document.getElementById('admin-status-text');
-            const lockIcon = document.getElementById('lock-icon');
-
-            if (isEditMode) {
-                indicator.innerHTML = 'Habilitado 🛠️';
-                indicator.className = "text-yellow-500 font-bold text-[10px]";
-                lockIcon.className = "fa-solid fa-lock-open text-yellow-500";
-            } else {
-                indicator.innerHTML = 'Bloqueado';
-                indicator.className = "text-zinc-500 text-[10px]";
-                lockIcon.className = "fa-solid fa-lock text-zinc-500";
-            }
-
-            renderDesktopIcons();
-            if (selectedGameId) {
-                renderGameHub(selectedGameId);
-            }
-        }
-
-        function checkAuthAndAction(callbackAction, ...args) {
-            if (!isEditMode) {
-                showToast("Ação Negada. Acesso Administrativo exigido!");
-                triggerEditModeAuth();
-                return;
-            }
-            callbackAction(...args);
-        }
-
-        // Custom notification helper
-        function showToast(text) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-text').innerText = text;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        // YouTube Player integration
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-        window.onYouTubeIframeAPIReady = function() {
-            ytPlayerReady = true;
+        // Sincronizador Central de Inicialização
+        async function syncAndRenderCore() {
             try {
-                ytPlayer = new YT.Player('yt-player', {
-                    height: '100',
-                    width: '100',
-                    videoId: '',
-                    playerVars: {
-                        'playsinline': 1,
-                        'autoplay': 0,
-                        'controls': 0,
-                        'loop': 1,
-                        'playlist': '' 
-                    },
-                    events: {
-                        'onReady': onPlayerReady,
-                        'onError': onPlayerError
-                    }
-                });
+                const fnafDocRef = doc(db, "fazbear_portal", "central_database");
+                const docSnap = await getDoc(fnafDocRef);
+
+                if (docSnap.exists()) {
+                    window.fazbearCloudData = docSnap.data();
+                    if (!window.fazbearCloudData.capitulos) window.fazbearCloudData.capitulos = {};
+                    if (!window.fazbearCloudData.stories) window.fazbearCloudData.stories = [];
+                } else {
+                    // Fábrica inicial vazia -> Alimenta com dados default do usuário
+                    window.fazbearCloudData = defaultDataStructure;
+                    await setDoc(fnafDocRef, defaultDataStructure);
+                }
             } catch (err) {
-                console.warn("YouTube player fallbacks active.", err);
+                console.warn("Falha de Handshake Firebase. Usando Contingência Local.", err);
+                window.fazbearCloudData = defaultDataStructure;
+            }
+            renderDesktopIcons();
+            populateAdminDropdowns();
+        }
+
+        // Funções anexadas a Window para persistência de escopo dos cliques HTML
+        window.saveCapituloCloud = async function() {
+            const id = document.getElementById('cap-id').value.trim().toLowerCase();
+            const name = document.getElementById('cap-name').value.trim();
+            const icon = document.getElementById('cap-icon').value.trim();
+            const bg = document.getElementById('cap-bg').value.trim();
+            const yt = document.getElementById('cap-yt').value.trim();
+            const fontStyle = document.getElementById('cap-font').value;
+
+            if(!id || !name) return alert("ID e Nome são campos mandatórios!");
+
+            window.fazbearCloudData.capitulos[id] = { id, name, icon, bg, ytVideoId: yt, fontStyle };
+            
+            await setDoc(doc(db, "fazbear_portal", "central_database"), window.fazbearCloudData);
+            alert("Capítulo salvo com sucesso na Nuvem Firebase!");
+            syncAndRenderCore();
+            closeAdminModal();
+        };
+
+        window.deleteCapituloCloud = async function() {
+            const id = document.getElementById('cap-id').value.trim().toLowerCase();
+            if(!id || !window.fazbearCloudData.capitulos[id]) return alert("Capítulo não localizado.");
+
+            delete window.fazbearCloudData.capitulos[id];
+            window.fazbearCloudData.stories = window.fazbearCloudData.stories.filter(s => s.capId !== id);
+
+            await setDoc(doc(db, "fazbear_portal", "central_database"), window.fazbearCloudData);
+            alert("Capítulo eliminado globalmente!");
+            syncAndRenderCore();
+            closeAdminModal();
+        };
+
+        window.saveStoryItemCloud = async function() {
+            const capId = document.getElementById('story-target-cap').value;
+            const category = document.getElementById('story-category').value;
+            const title = document.getElementById('story-title-input').value.trim();
+            const img = document.getElementById('story-img-input').value.trim();
+            const desc = document.getElementById('story-desc-input').value.trim();
+
+            if(!title || !desc) return alert("Título e Descrição do Story são cruciais!");
+
+            const newStory = {
+                id: "st_" + Date.now(),
+                capId, category, title, img, desc
+            };
+
+            window.fazbearCloudData.stories.push(newStory);
+            await setDoc(doc(db, "fazbear_portal", "central_database"), window.fazbearCloudData);
+            alert("Story Injetado no Fluxo de Transmissão!");
+            
+            document.getElementById('story-title-input').value = "";
+            document.getElementById('story-img-input').value = "";
+            document.getElementById('story-desc-input').value = "";
+            
+            syncAndRenderCore();
+            renderAdminStoriesList();
+        };
+
+        window.removeStoryItemCloud = async function(id) {
+            window.fazbearCloudData.stories = window.fazbearCloudData.stories.filter(s => s.id !== id);
+            await setDoc(doc(db, "fazbear_portal", "central_database"), window.fazbearCloudData);
+            renderAdminStoriesList();
+        };
+
+        window.triggerSystemReset = async function() {
+            if(confirm("Confirmar restauração total? Isso redefinirá o Firebase para as configurações de fábrica padrão de FNaF 1, 2 e 3.")) {
+                await setDoc(doc(db, "fazbear_portal", "central_database"), defaultDataStructure);
+                alert("Restauração Concluída.");
+                window.location.reload();
             }
         };
 
-        function onPlayerReady(event) {
-            ytPlayerReady = true;
-            if (currentLoadedTrackId) {
-                playYoutubeTrack(currentLoadedTrackId);
-            }
+        // Inicialização primária
+        window.addEventListener('DOMContentLoaded', () => {
+            syncAndRenderCore();
+            startLiveClock();
+        });
+    </script>
+
+    <!-- MOTOR DE COMPORTAMENTO E UI RETRÔ EM JAVASCRIPT -->
+    <script>
+        let currentActiveCapId = null;
+        let currentActiveCategory = "personagens";
+        let activeStoriesList = [];
+        let storyIndex = 0;
+        let storyInterval = null;
+        let storyProgressValue = 0;
+        let isStoryPaused = false;
+        let ytPlayer = null;
+        let isGlobalMuted = false;
+        let loginStep = "user";
+
+        // RELÓGIO DO MONITOR DE SEGURANÇA
+        function startLiveClock() {
+            setInterval(() => {
+                const now = new Date();
+                let hours = now.getHours();
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                document.getElementById('system-live-clock').innerText = `${String(hours).padStart(2,'0')}:${minutes}:${seconds} ${ampm}`;
+            }, 1000);
         }
 
-        function onPlayerError(e) {
-            console.warn("YouTube API Player Error: ", e);
-        }
+        // RENDERIZADOR DOS ÍCONES ESTILO WINDOWS 95/98
+        function renderDesktopIcons() {
+            const desktop = document.getElementById('system-desktop');
+            desktop.innerHTML = "";
 
-        function playYoutubeTrack(videoId) {
-            currentLoadedTrackId = videoId;
-            if (!ytPlayerReady || !ytPlayer) return;
+            if (!window.fazbearCloudData || !window.fazbearCloudData.capitulos) return;
 
-            try {
-                if (videoId) {
-                    ytPlayer.loadPlaylist({
-                        playlist: [videoId],
-                        listType: 'playlist',
-                        index: 0,
-                        startSeconds: 0
-                    });
-                    ytPlayer.setLoop(true);
-                    ytPlayer.setVolume(70);
-                    
-                    setTimeout(() => {
-                        try {
-                            if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
-                                ytPlayer.playVideo();
-                            }
-                        } catch(err) {
-                            console.log("Audio autoplay suppressed.", err);
-                        }
-                    }, 500);
-                } else {
-                    stopYoutubeTrack();
-                }
-            } catch (err) {
-                console.error("Audio trigger crash: ", err);
-            }
-        }
+            Object.values(window.fazbearCloudData.capitulos).forEach(cap => {
+                const iconDiv = document.createElement('div');
+                iconDiv.className = "desktop-icon";
+                iconDiv.onclick = () => openChapterWindow(cap.id);
 
-        function stopYoutubeTrack() {
-            try {
-                if (ytPlayerReady && ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-                    ytPlayer.stopVideo();
-                }
-            } catch(e) {}
-        }
-
-        function toggleCassetteVolume() {
-            if (!ytPlayerReady || !ytPlayer) return;
-            try {
-                const currentVol = ytPlayer.getVolume();
-                const icon = document.getElementById('cassette-vol-icon');
-                if (currentVol > 0) {
-                    ytPlayer.setVolume(0);
-                    if (icon) icon.className = "fa-solid fa-volume-xmark text-zinc-500";
-                    showToast("Áudio atmosférico silenciado.");
-                } else {
-                    ytPlayer.setVolume(70);
-                    if (icon) icon.className = "fa-solid fa-volume-high text-green-500";
-                    showToast("Áudio restaurado.");
-                    ytPlayer.playVideo();
-                }
-            } catch(e) {
-                showToast("Ajuste indisponível.");
-            }
-        }
-
-        function getVibeColor(vibe, customColor) {
-            switch(vibe) {
-                case 'classic': return '#dc2626'; 
-                case 'toy': return '#06b6d4'; 
-                case 'rotten': return '#84cc16'; 
-                case 'shadow': return '#a855f7'; 
-                case 'cyber': return '#14b8a6'; 
-                case 'custom': return customColor || '#ffffff';
-                default: return '#dc2626';
-            }
-        }
-
-        // Main Core Terminal Window interface
-        function renderGameHub(gameId) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) {
-                closeWindow();
-                return;
-            }
-
-            const primaryColor = getVibeColor(game.theme.vibe, game.theme.primary);
-            const bodyContainer = document.getElementById('window-content-body');
-            
-            let fontClass = 'font-mono';
-            if (game.theme.font === 'Creepster') fontClass = "font-['Creepster']";
-            if (game.theme.font === 'Special Elite') fontClass = "font-['Special Elite']";
-            if (game.theme.font === 'VT323') fontClass = "font-['VT323'] text-lg";
-            if (game.theme.font === 'Nosifer') fontClass = "font-['Nosifer'] text-red-600 tracking-tighter";
-            if (game.theme.font === 'Rubik Glitch') fontClass = "font-['Rubik Glitch']";
-
-            bodyContainer.innerHTML = `
-                <!-- THEME TOP BANNER -->
-                <div class="p-5 md:p-6 bg-zinc-900 border-2 flex flex-col md:flex-row gap-5 items-center justify-between relative overflow-hidden" style="border-color: ${primaryColor}40">
-                    <div class="flex flex-col sm:flex-row items-center gap-5">
-                        <div class="w-20 h-20 md:w-24 md:h-24 overflow-hidden border border-zinc-700 bg-zinc-950 shrink-0">
-                            <img src="${game.cover || 'https://placehold.co/150/111/fff?text=FNaF'}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/150/111/fff?text=Capa+Off'">
-                        </div>
-
-                        <div class="space-y-1.5 text-center sm:text-left">
-                            <h2 class="text-2xl md:text-3xl font-extrabold uppercase tracking-wider ${fontClass}" style="color: ${primaryColor}">
-                                ${game.title}
-                            </h2>
-                            <p class="text-[10px] text-zinc-400 font-mono uppercase tracking-widest">${game.subtitle || 'Dossiê do Sistema'}</p>
-                        </div>
-                    </div>
-
-                    <!-- CASSETTE RETRO DECK -->
-                    <div class="flex items-center gap-3 bg-zinc-950 border border-zinc-800 px-3.5 py-2.5 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
-                        <div class="flex items-center gap-2.5">
-                            <i class="fa-solid fa-tape text-yellow-600 text-lg animate-pulse"></i>
-                            <div>
-                                <p class="text-[8px] text-zinc-500 uppercase tracking-widest">Trilha de Áudio</p>
-                                <p class="text-[10px] font-bold text-green-500 truncate max-w-[120px]">${game.youtubeId ? 'ID: ' + game.youtubeId : 'Ruído Ativo'}</p>
-                            </div>
-                        </div>
-                        <button onclick="toggleCassetteVolume()" class="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white">
-                            <i id="cassette-vol-icon" class="fa-solid fa-volume-high text-green-500 text-xs"></i>
-                        </button>
-                    </div>
-
-                    ${isEditMode ? `
-                        <div class="absolute top-2 right-2">
-                            <button onclick="editGameConfig('${game.id}')" class="px-2 py-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold font-mono text-[9px] uppercase shadow">
-                                <i class="fa-solid fa-gears"></i> CONFIG
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-
-                <!-- SUB-MENU TABS -->
-                <nav class="flex border-b border-zinc-800 gap-1 md:gap-2 mt-5">
-                    <button onclick="switchTab('about')" class="px-3.5 py-2.5 text-xs font-bold border-b-2 transition font-mono ${activeTab === 'about' ? 'border-red-500 text-red-500 bg-red-950/10' : 'border-transparent text-zinc-400 hover:text-white'}" style="border-bottom-color: ${activeTab === 'about' ? primaryColor : 'transparent'}; color: ${activeTab === 'about' ? primaryColor : ''}">
-                        <i class="fa-solid fa-book-open mr-1"></i> ARQUIVOS
-                    </button>
-                    <button onclick="switchTab('characters')" class="px-3.5 py-2.5 text-xs font-bold border-b-2 transition font-mono ${activeTab === 'characters' ? 'border-red-500 text-red-500 bg-red-950/10' : 'border-transparent text-zinc-400 hover:text-white'}" style="border-bottom-color: ${activeTab === 'characters' ? primaryColor : 'transparent'}; color: ${activeTab === 'characters' ? primaryColor : ''}">
-                        <i class="fa-solid fa-ghost mr-1"></i> HOSTIS
-                    </button>
-                    <button onclick="switchTab('mechanics')" class="px-3.5 py-2.5 text-xs font-bold border-b-2 transition font-mono ${activeTab === 'mechanics' ? 'border-red-500 text-red-500 bg-red-950/10' : 'border-transparent text-zinc-400 hover:text-white'}" style="border-bottom-color: ${activeTab === 'mechanics' ? primaryColor : 'transparent'}; color: ${activeTab === 'mechanics' ? primaryColor : ''}">
-                        <i class="fa-solid fa-shield-halved mr-1"></i> MANUAL
-                    </button>
-                </nav>
-
-                <!-- TAB RENDERING -->
-                <div class="mt-5 bg-zinc-950 p-4 md:p-5 border border-zinc-800">
-                    ${renderActiveTabContent(game, primaryColor)}
-                </div>
-            `;
-        }
-
-        function switchTab(tabName) {
-            activeTab = tabName;
-            renderGameHub(selectedGameId);
-        }
-
-        function renderActiveTabContent(game, primaryColor) {
-            if (activeTab === 'about') {
-                return renderAboutTab(game, primaryColor);
-            } else if (activeTab === 'characters') {
-                return renderCharactersTab(game, primaryColor);
-            } else if (activeTab === 'mechanics') {
-                return renderMechanicsTab(game, primaryColor);
-            }
-        }
-
-        // ABOUT & HISTORY PANEL
-        function renderAboutTab(game, primaryColor) {
-            if (isEditMode) {
-                return `
-                    <div class="space-y-4 text-xs">
-                        <div class="flex items-center gap-1.5 text-yellow-500 mb-1 font-bold">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                            <span class="text-[9px] uppercase">Edição de Informações Ativa</span>
-                        </div>
-                        
-                        <div class="space-y-1">
-                            <label class="block text-[10px] font-bold text-zinc-400 uppercase">Título Interno</label>
-                            <input type="text" id="edit-about-title" value="${game.about.title || ''}" class="w-full bg-zinc-900 border border-zinc-800 rounded-none p-2 text-white">
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="block text-[10px] font-bold text-zinc-400 uppercase">Sinopse de Entrada</label>
-                            <textarea id="edit-about-intro" rows="3" class="w-full bg-zinc-900 border border-zinc-800 rounded-none p-2 text-white font-sans text-xs">${game.about.intro || ''}</textarea>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="block text-[10px] font-bold text-zinc-400 uppercase">Relatório Histórico</label>
-                            <textarea id="edit-about-history" rows="5" class="w-full bg-zinc-900 border border-zinc-800 rounded-none p-2 text-white font-sans text-xs">${game.about.history || ''}</textarea>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="block text-[10px] font-bold text-zinc-400 uppercase">Fatos & Rumores (Um por linha)</label>
-                            <textarea id="edit-about-curiosities" rows="3" class="w-full bg-zinc-900 border border-zinc-800 rounded-none p-2 text-white font-sans text-xs" placeholder="Cole aqui os fatos...">${(game.about.curiosities || []).join('\n')}</textarea>
-                        </div>
-
-                        <button onclick="saveAboutEdits('${game.id}')" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-black font-bold uppercase text-[10px] rounded-none">
-                            <i class="fa-solid fa-floppy-disk"></i> Gravar Alterações
-                        </button>
-                    </div>
+                const fallbackImg = "https://images.uncyc.org/pt/thumb/d/d4/Freddy_head.png/250px-Freddy_head.png";
+                iconDiv.innerHTML = `
+                    <img src="${cap.icon || fallbackImg}" onerror="this.src='${fallbackImg}'">
+                    <span>${cap.name}</span>
                 `;
-            }
-
-            const curiositiesList = (game.about.curiosities || [])
-                .map(cur => `<li class="flex items-start gap-2 text-zinc-400 font-sans text-[11px]"><span class="text-red-500 font-mono select-none">▶</span> <span>${cur}</span></li>`)
-                .join('');
-
-            return `
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 space-y-4">
-                        <div class="space-y-1.5">
-                            <h3 class="text-xl font-bold uppercase tracking-wider text-white border-l-4 pl-3.5" style="border-color: ${primaryColor}">
-                                ${game.about.title || 'Visão Geral'}
-                            </h3>
-                            <p class="text-xs leading-relaxed text-zinc-300 font-sans font-semibold">${game.about.intro || 'Sinopse não documentada.'}</p>
-                        </div>
-
-                        <div class="space-y-2 pt-3 border-t border-zinc-900">
-                            <h4 class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Histórico de Incidentes</h4>
-                            <p class="text-[11px] leading-relaxed text-zinc-400 font-sans whitespace-pre-line">${game.about.history || 'Sem informações adicionais.'}</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-zinc-900/40 border border-zinc-800 p-4 h-fit space-y-3">
-                        <h4 class="text-[9px] font-bold uppercase tracking-widest text-zinc-400 border-b border-zinc-800 pb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-info" style="color: ${primaryColor}"></i> Mistérios Catalogados
-                        </h4>
-                        
-                        <ul class="space-y-2">
-                            ${curiositiesList || '<li class="text-zinc-600 text-xs">Nenhum rumor indexado.</li>'}
-                        </ul>
-                    </div>
-                </div>
-            `;
-        }
-
-        function saveAboutEdits(gameId) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-
-            game.about.title = document.getElementById('edit-about-title').value;
-            game.about.intro = document.getElementById('edit-about-intro').value;
-            game.about.history = document.getElementById('edit-about-history').value;
-            
-            const rawCuriosities = document.getElementById('edit-about-curiosities').value;
-            game.about.curiosities = rawCuriosities.split('\n').map(c => c.trim()).filter(c => c.length > 0);
-
-            saveDatabase();
-            renderGameHub(gameId);
-        }
-
-        // CHARACTERS & ENEMIES PANEL
-        function renderCharactersTab(game, primaryColor) {
-            let characterSnippet = '';
-
-            if (isEditMode) {
-                (game.characters || []).forEach((char, index) => {
-                    characterSnippet += `
-                        <div class="bg-zinc-900/60 border border-zinc-800 p-4 space-y-3 text-[10px]">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div class="space-y-1">
-                                    <label class="block text-[9px] text-zinc-500 uppercase font-bold">Identificação</label>
-                                    <input type="text" onchange="updateCharacterField('${game.id}', '${char.id}', 'name', this.value)" value="${char.name}" class="w-full bg-zinc-950 border border-zinc-800 p-1.5 text-white font-bold uppercase">
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="block text-[9px] text-zinc-500 uppercase font-bold">Arquivo Imagem (URL)</label>
-                                    <input type="text" onchange="updateCharacterField('${game.id}', '${char.id}', 'image', this.value)" value="${char.image || ''}" class="w-full bg-zinc-950 border border-zinc-800 p-1.5 text-zinc-400 font-mono">
-                                </div>
-                            </div>
-
-                            <div class="space-y-1">
-                                <label class="block text-[9px] text-zinc-500 uppercase font-bold">Classificação / Papel</label>
-                                <input type="text" onchange="updateCharacterField('${game.id}', '${char.id}', 'role', this.value)" value="${char.role}" class="w-full bg-zinc-950 border border-zinc-800 p-1.5 text-zinc-300">
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div class="space-y-1">
-                                    <label class="block text-[9px] text-red-400 uppercase font-bold">Rota de Ataque / Comportamento</label>
-                                    <textarea onchange="updateCharacterField('${game.id}', '${char.id}', 'behavior', this.value)" class="w-full bg-zinc-950 border border-zinc-800 p-1.5 text-zinc-300 h-16">${char.behavior}</textarea>
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="block text-[9px] text-green-400 uppercase font-bold">Estratégia de Defesa</label>
-                                    <textarea onchange="updateCharacterField('${game.id}', '${char.id}', 'counter', this.value)" class="w-full bg-zinc-950 border border-zinc-800 p-1.5 text-zinc-300 h-16">${char.counter}</textarea>
-                                </div>
-                            </div>
-
-                            <div class="flex justify-end pt-2 border-t border-zinc-800/60">
-                                <button onclick="deleteCharacter('${game.id}', '${char.id}')" class="px-2.5 py-1.5 bg-red-950 hover:bg-red-900 border border-red-800 text-red-200 font-bold transition text-[9px]">
-                                    <i class="fa-solid fa-trash-can"></i> REMOVER FICHA
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                return `
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center bg-yellow-950/20 border border-yellow-900/40 p-3">
-                            <span class="text-[9px] text-yellow-500 font-bold uppercase"><i class="fa-solid fa-wrench"></i> Controle Administrativo de Animatrônicos</span>
-                            <button onclick="addNewCharacter('${game.id}')" class="px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white font-mono text-[9px] font-bold">
-                                + ADICIONAR ENTRADA
-                            </button>
-                        </div>
-                        <div class="space-y-4">
-                            ${characterSnippet || '<p class="text-zinc-600 text-center text-xs">Sem hostis cadastrados.</p>'}
-                        </div>
-                    </div>
-                `;
-            }
-
-            const listItems = (game.characters || []).map((char, idx) => `
-                <div class="bg-zinc-900/40 border border-zinc-800 p-3 flex items-center justify-between hover:border-red-900 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 overflow-hidden bg-zinc-950 border border-zinc-700 shrink-0">
-                            <img src="${char.image || 'https://placehold.co/100x100/18181b/dc2626?text=' + char.name}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100x100/18181b/dc2626?text=?'">
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-white uppercase">${char.name}</h4>
-                            <p class="text-[9px] text-zinc-500 truncate max-w-[150px]">${char.role || 'Membro do Elenco'}</p>
-                        </div>
-                    </div>
-                    <button onclick="launchStoriesViewer('characters', ${idx})" class="px-2.5 py-1.5 bg-red-600/20 border border-red-500 hover:bg-red-600 hover:text-white text-red-400 text-[10px] font-bold transition flex items-center gap-1">
-                        <i class="fa-solid fa-circle-play animate-pulse text-[9px]"></i> TRANSMITIR
-                    </button>
-                </div>
-            `).join('');
-
-            return `
-                <div class="space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-red-950/20 border border-red-950/60 p-4">
-                        <div>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                                <i class="fa-solid fa-tower-broadcast text-red-500"></i> TRANSMISSÃO DE DIRETÓRIO: ANIMATRÔNICOS
-                            </h3>
-                            <p class="text-[10px] text-zinc-400 font-sans">Acesse as fichas táticas em formato de transmissão rápida de Stories.</p>
-                        </div>
-                        
-                        <button onclick="launchStoriesViewer('characters', 0)" class="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold transition uppercase text-[10px] flex items-center justify-center gap-1.5 shrink-0">
-                            <i class="fa-solid fa-play text-[9px]"></i> INICIAR FEED
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        ${listItems || `
-                            <p class="text-zinc-600 text-center col-span-full py-4 text-xs">Banco de dados de hostis vazio.</p>
-                        `}
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateCharacterField(gameId, charId, fieldName, value) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-            const char = game.characters.find(c => c.id === charId);
-            if (!char) return;
-
-            char[fieldName] = value;
-            saveDatabase();
-        }
-
-        function addNewCharacter(gameId) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-
-            const newChar = {
-                id: "char-" + Date.now(),
-                name: "Novo Animatrônico",
-                image: "https://placehold.co/300x400/18181b/dc2626?text=RETRATO",
-                role: "Invasor de Setores",
-                behavior: "Avança quando as câmeras são fechadas.",
-                counter: "Acione o áudio corretivo na sala oposta."
-            };
-
-            if(!game.characters) game.characters = [];
-            game.characters.push(newChar);
-            saveDatabase();
-            renderGameHub(gameId);
-        }
-
-        function deleteCharacter(gameId, charId) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-
-            if(confirm("Confirmar deleção permanente da ficha deste animatrónico?")) {
-                game.characters = game.characters.filter(c => c.id !== charId);
-                saveDatabase();
-                renderGameHub(gameId);
-            }
-        }
-
-        // SURVIVAL GUIDE PANEL (MANUAL)
-        function renderMechanicsTab(game, primaryColor) {
-            let guideSnippet = '';
-
-            if (isEditMode) {
-                (game.survivalGuide || []).forEach((mech, index) => {
-                    guideSnippet += `
-                        <div class="bg-zinc-900/60 border border-zinc-800 p-4 space-y-2 text-[10px]">
-                            <div class="flex items-center gap-2">
-                                <span class="bg-zinc-950 px-2 py-0.5 text-green-400 font-bold border border-zinc-800 text-[10px]">0${index+1}</span>
-                                <input type="text" onchange="updateGuideField('${game.id}', ${index}, 'title', this.value)" value="${mech.title}" class="w-full bg-zinc-950 border border-zinc-800 p-1.5 text-white font-bold uppercase">
-                            </div>
-                            <textarea onchange="updateGuideField('${game.id}', ${index}, 'desc', this.value)" class="w-full bg-zinc-950 border border-zinc-800 p-1.5 text-zinc-300 h-16">${mech.desc}</textarea>
-                            <div class="flex justify-end">
-                                <button onclick="deleteGuideItem('${game.id}', ${index})" class="text-red-500 hover:text-red-400 font-bold text-[9px] uppercase">
-                                    <i class="fa-solid fa-trash"></i> Remover Entrada
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                return `
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center bg-yellow-950/20 border border-yellow-900/40 p-3">
-                            <span class="text-[9px] text-yellow-500 font-bold uppercase"><i class="fa-solid fa-wrench"></i> Controle Administrativo do Manual</span>
-                            <button onclick="addNewGuideItem('${game.id}')" class="px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white font-mono text-[9px] font-bold">
-                                + ADICIONAR REGRA
-                            </button>
-                        </div>
-                        <div class="space-y-4">
-                            ${guideSnippet || '<p class="text-zinc-600 text-center text-xs">Sem diretrizes criadas.</p>'}
-                        </div>
-                    </div>
-                `;
-            }
-
-            const guidesItemsList = (game.survivalGuide || []).map((mech, idx) => `
-                <div class="bg-zinc-900/40 border border-zinc-800 p-3 flex items-center justify-between hover:border-red-900 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <div class="w-7 h-7 bg-red-950 border border-red-800 text-red-500 flex items-center justify-center font-bold text-[10px]">
-                            0${idx + 1}
-                        </div>
-                        <h4 class="text-xs font-bold text-white uppercase">${mech.title}</h4>
-                    </div>
-                    <button onclick="launchStoriesViewer('survivalGuide', ${idx})" class="px-2.5 py-1.5 bg-red-600/20 border border-red-500 hover:bg-red-600 hover:text-white text-red-400 text-[10px] font-bold transition flex items-center gap-1">
-                        <i class="fa-solid fa-circle-play animate-pulse text-[9px]"></i> ABRIR
-                    </button>
-                </div>
-            `).join('');
-
-            return `
-                <div class="space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-red-950/20 border border-red-950/60 p-4">
-                        <div>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                                <i class="fa-solid fa-shield-halved text-red-500"></i> MANUAL DE SEGURANÇA INTERNA
-                            </h3>
-                            <p class="text-[10px] text-zinc-400 font-sans">Abra as diretrizes oficiais de defesa corporativa em slides dinâmicos.</p>
-                        </div>
-                        
-                        <button onclick="launchStoriesViewer('survivalGuide', 0)" class="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold transition uppercase text-[10px] flex items-center justify-center gap-1.5 shrink-0">
-                            <i class="fa-solid fa-play text-[9px]"></i> INICIAR GUIA
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        ${guidesItemsList || `
-                            <p class="text-zinc-600 text-center col-span-full py-4 text-xs">Nenhum protocolo cadastrado.</p>
-                        `}
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateGuideField(gameId, index, fieldName, value) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-            if (!game.survivalGuide[index]) return;
-
-            game.survivalGuide[index][fieldName] = value;
-            saveDatabase();
-        }
-
-        function addNewGuideItem(gameId) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-
-            const newItem = {
-                title: "Novo Protocolo Operacional",
-                desc: "Certifique-se de fechar as cortinas e reciclar o oxigênio constantemente."
-            };
-
-            if(!game.survivalGuide) game.survivalGuide = [];
-            game.survivalGuide.push(newItem);
-            saveDatabase();
-            renderGameHub(gameId);
-        }
-
-        function deleteGuideItem(gameId, index) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-
-            if(confirm("Confirmar remoção desta regra do manual?")) {
-                game.survivalGuide.splice(index, 1);
-                saveDatabase();
-                renderGameHub(gameId);
-            }
-        }
-
-        // Stories Engine logic
-        function launchStoriesViewer(type, startIndex) {
-            const game = fnafDatabase.find(g => g.id === selectedGameId);
-            if (!game) return;
-
-            if (type === 'characters') {
-                currentStoriesList = (game.characters || []).map(char => ({
-                    title: char.name,
-                    subTitle: char.role || 'Hostil',
-                    image: char.image || '',
-                    contentHtml: `
-                        <div class="space-y-3 font-mono text-zinc-100 flex-grow flex flex-col justify-end bg-gradient-to-t from-black via-black/90 to-transparent p-4 border border-red-950/45 rounded-lg">
-                            <div>
-                                <span class="px-2 py-0.5 bg-red-950 border border-red-700 text-red-500 text-[8px] uppercase tracking-widest font-bold">Dossiê Hostil</span>
-                                <h3 class="text-lg font-extrabold text-red-500 uppercase tracking-wider mt-1 font-['Creepster']">${char.name}</h3>
-                                <p class="text-[9px] text-zinc-500 font-mono italic">${char.role || 'Classificação: Desconhecida'}</p>
-                            </div>
-
-                            <div class="space-y-2 border-t border-zinc-900 pt-2 text-[10px]">
-                                <div>
-                                    <span class="text-yellow-500 font-bold block text-[9px] uppercase">⚠️ Comportamento Noturno:</span>
-                                    <p class="text-zinc-400 font-sans leading-relaxed text-[11px]">${char.behavior}</p>
-                                </div>
-                                <div>
-                                    <span class="text-green-500 font-bold block text-[9px] uppercase">🛡️ Neutralização:</span>
-                                    <p class="text-zinc-400 font-sans leading-relaxed text-[11px]">${char.counter}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `
-                }));
-            } else if (type === 'survivalGuide') {
-                currentStoriesList = (game.survivalGuide || []).map((mech, index) => ({
-                    title: mech.title,
-                    subTitle: `Diretriz 0${index + 1}`,
-                    image: game.cover || '',
-                    contentHtml: `
-                        <div class="space-y-3 font-mono text-zinc-100 flex-grow flex flex-col justify-end bg-gradient-to-t from-black via-black/95 to-transparent p-4 border border-zinc-800 rounded-lg">
-                            <div>
-                                <span class="px-2 py-0.5 bg-green-950 border border-green-700 text-green-400 text-[8px] uppercase tracking-widest font-bold">Procedimento Operacional</span>
-                                <h3 class="text-lg font-extrabold text-green-500 uppercase tracking-wider mt-1">${mech.title}</h3>
-                                <p class="text-[9px] text-zinc-500 font-mono italic">Regra de Segurança de Sistema 0${index + 1}</p>
-                            </div>
-
-                            <div class="space-y-1.5 border-t border-zinc-900 pt-2 text-[10px]">
-                                <p class="text-zinc-400 font-sans leading-relaxed text-[11px] bg-black/40 p-3 border border-zinc-900">${mech.desc}</p>
-                            </div>
-                        </div>
-                    `
-                }));
-            }
-
-            if (currentStoriesList.length === 0) {
-                showToast("Sem slides para exibição.");
-                return;
-            }
-
-            currentStoryIndex = startIndex;
-            isStoryPaused = false;
-            document.getElementById('story-pause-icon').className = "fa-solid fa-pause text-xs";
-
-            const viewer = document.getElementById('stories-viewer');
-            viewer.classList.remove('hidden');
-
-            renderProgressBars();
-            displayStoryIndex(currentStoryIndex);
-        }
-
-        function closeStoriesViewer() {
-            document.getElementById('stories-viewer').classList.add('hidden');
-            stopStoryProgress();
-        }
-
-        function renderProgressBars() {
-            const container = document.getElementById('stories-progress-indicators');
-            container.innerHTML = '';
-
-            currentStoriesList.forEach((_, idx) => {
-                const bar = document.createElement('div');
-                bar.className = "flex-1 h-1 bg-zinc-800/80 overflow-hidden";
-                bar.innerHTML = `
-                    <div id="story-bar-fill-${idx}" class="h-full w-0 bg-red-600 transition-all"></div>
-                `;
-                container.appendChild(bar);
+                desktop.appendChild(iconDiv);
             });
         }
 
-        function displayStoryIndex(index) {
-            if (index < 0 || index >= currentStoriesList.length) {
-                closeStoriesViewer();
-                return;
-            }
+        // INTERFACE DE NAVEGAÇÃO DE JANELAS (CAPÍTULOS)
+        function openChapterWindow(capId) {
+            const cap = window.fazbearCloudData.capitulos[capId];
+            if(!cap) return;
 
-            currentStoryIndex = index;
-            const item = currentStoriesList[index];
-
-            const flash = document.getElementById('stories-static-flash');
-            if (flash) {
-                flash.classList.remove('opacity-0');
-                setTimeout(() => {
-                    if (flash) flash.classList.add('opacity-0');
-                }, 150);
-            }
-
-            document.getElementById('stories-header-avatar').innerText = item.title ? item.title[0] : '?';
-            document.getElementById('stories-header-title').innerText = item.title;
-
-            const body = document.getElementById('stories-content-body');
-            body.className = "w-full h-full flex flex-col justify-between pt-20 pb-6 px-6 relative select-none bg-cover bg-center transition-all duration-300";
+            currentActiveCapId = capId;
+            const win = document.getElementById('app-window');
+            document.getElementById('window-app-title').innerText = `📟 OS Terminal - [${cap.name}]`;
             
-            if (item.image) {
-                body.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.85)), url('${item.image}')`;
-            } else {
-                body.style.backgroundImage = "none";
-                body.classList.add('bg-zinc-950');
-            }
+            // Alteração de Wallpaper Dinâmico no Fundo do Desktop baseado no Jogo Aberto
+            document.getElementById('system-desktop').style.backgroundImage = `url('${cap.bg || ''}')`;
+
+            // Ativação da música correspondente do YouTube
+            playYoutubeBackgroundTrack(cap.ytVideoId);
+
+            renderChapterDashboardContent();
+            win.style.display = 'flex';
+            updateTaskbarTabs(cap.name);
+        }
+
+        function renderChapterDashboardContent() {
+            const cap = window.fazbearCloudData.capitulos[currentActiveCapId];
+            const body = document.getElementById('window-app-body');
+            body.style.fontFamily = cap.fontStyle || 'monospace';
 
             body.innerHTML = `
-                <div class="h-full flex flex-col justify-end">
-                    ${item.contentHtml}
+                <div class="game-dashboard">
+                    <div class="game-nav-header">
+                        <button class="game-nav-btn ${currentActiveCategory === 'personagens' ? 'active' : ''}" onclick="switchCategoryTab('personagens')">ANIMATRÔNICOS</button>
+                        <button class="game-nav-btn ${currentActiveCategory === 'historia' ? 'active' : ''}" onclick="switchCategoryTab('historia')">ARQUIVOS DE LORE</button>
+                        <button class="game-nav-btn ${currentActiveCategory === 'sobrevivencia' ? 'active' : ''}" onclick="switchCategoryTab('sobrevivencia')">DIRETRIZES DE NOITE</button>
+                    </div>
+                    <div style="font-size:11px; margin-bottom:10px; color:rgba(255,255,255,0.4)">Dica: Ao selecionar uma das subcategorias abaixo, as informações abrirão no modo dinâmico Stories.</div>
+                    <div class="items-list-container" id="dashboard-items-grid">
+                        <!-- Carregado via filtro de categorias -->
+                    </div>
                 </div>
             `;
-
-            for (let i = 0; i < currentStoriesList.length; i++) {
-                const fill = document.getElementById(`story-bar-fill-${i}`);
-                if (fill) {
-                    if (i < index) fill.style.width = '100%';
-                    else if (i > index) fill.style.width = '0%';
-                }
-            }
-
-            startStoryProgress();
+            renderGridCategoryItems();
         }
 
-        function startStoryProgress() {
-            stopStoryProgress();
-            storyProgressPercent = 0;
-            
-            const fill = document.getElementById(`story-bar-fill-${currentStoryIndex}`);
-            const updateInterval = 100; 
-            const stepPercent = (updateInterval / STORY_DURATION) * 100;
-
-            storyProgressTimer = setInterval(() => {
-                if (!isStoryPaused) {
-                    storyProgressPercent += stepPercent;
-                    if (fill) fill.style.width = `${Math.min(storyProgressPercent, 100)}%`;
-
-                    if (storyProgressPercent >= 100) {
-                        nextStory();
-                    }
-                }
-            }, updateInterval);
+        function switchCategoryTab(cat) {
+            currentActiveCategory = cat;
+            renderChapterDashboardContent();
         }
 
-        function stopStoryProgress() {
-            if (storyProgressTimer) {
-                clearInterval(storyProgressTimer);
-                storyProgressTimer = null;
-            }
-        }
+        function renderGridCategoryItems() {
+            const grid = document.getElementById('dashboard-items-grid');
+            grid.innerHTML = "";
 
-        function nextStory() {
-            if (currentStoryIndex + 1 < currentStoriesList.length) {
-                displayStoryIndex(currentStoryIndex + 1);
-            } else {
-                closeStoriesViewer();
-                showToast("Fim da monitoria.");
-            }
-        }
+            const filtered = window.fazbearCloudData.stories.filter(s => s.capId === currentActiveCapId && s.category === currentActiveCategory);
 
-        function prevStory() {
-            if (currentStoryIndex - 1 >= 0) {
-                displayStoryIndex(currentStoryIndex - 1);
-            } else {
-                displayStoryIndex(currentStoryIndex);
-            }
-        }
-
-        function togglePauseStory() {
-            isStoryPaused = !isStoryPaused;
-            const icon = document.getElementById('story-pause-icon');
-            if (isStoryPaused) {
-                if (icon) icon.className = "fa-solid fa-play text-yellow-500 animate-pulse text-xs";
-                showToast("Feed suspenso.");
-            } else {
-                if (icon) icon.className = "fa-solid fa-pause text-xs";
-                showToast("Feed ativo.");
-            }
-        }
-
-        function pauseStoryOnHold() {
-            isStoryPaused = true;
-            const icon = document.getElementById('story-pause-icon');
-            if (icon) icon.className = "fa-solid fa-play text-yellow-500 text-xs";
-        }
-
-        function resumeStoryOnRelease() {
-            isStoryPaused = false;
-            const icon = document.getElementById('story-pause-icon');
-            if (icon) icon.className = "fa-solid fa-pause text-xs";
-        }
-
-        // Form & Modals logic
-        function initiateNewGameCreation() {
-            document.getElementById('game-form').reset();
-            document.getElementById('modal-game-id').value = '';
-            document.getElementById('game-modal-title').innerText = 'Dossiê: Adicionar Capítulo';
-            
-            document.querySelector('input[name="modal-game-vibe"][value="classic"]').checked = true;
-            document.getElementById('custom-colors-group').classList.add('hidden');
-
-            document.getElementById('game-modal').classList.remove('hidden');
-        }
-
-        function editGameConfig(gameId) {
-            const game = fnafDatabase.find(g => g.id === gameId);
-            if (!game) return;
-
-            document.getElementById('modal-game-id').value = game.id;
-            document.getElementById('game-modal-title').innerText = `Dossiê: Configurar ${game.title}`;
-            document.getElementById('modal-game-title').value = game.title;
-            document.getElementById('modal-game-subtitle').value = game.subtitle || '';
-            document.getElementById('modal-game-cover').value = game.cover || '';
-            document.getElementById('modal-game-wallpaper').value = game.wallpaper || '';
-            document.getElementById('modal-game-youtube-id').value = game.youtubeId || '';
-            document.getElementById('modal-game-desc').value = game.about.intro || '';
-            document.getElementById('modal-game-font').value = game.theme.font || 'monospace';
-
-            const vibeValue = game.theme.vibe || 'classic';
-            const radio = document.querySelector(`input[name="modal-game-vibe"][value="${vibeValue}"]`);
-            if (radio) radio.checked = true;
-
-            if (vibeValue === 'custom') {
-                document.getElementById('custom-colors-group').classList.remove('hidden');
-                document.getElementById('modal-game-color-primary').value = game.theme.primary || '#e11d48';
-            } else {
-                document.getElementById('custom-colors-group').classList.add('hidden');
-            }
-
-            document.getElementById('game-modal').classList.remove('hidden');
-        }
-
-        function closeGameModal() {
-            document.getElementById('game-modal').classList.add('hidden');
-        }
-
-        document.querySelectorAll('input[name="modal-game-vibe"]').forEach(elem => {
-            elem.addEventListener('change', function(e) {
-                if (e.target.value === 'custom') {
-                    document.getElementById('custom-colors-group').classList.remove('hidden');
-                } else {
-                    document.getElementById('custom-colors-group').classList.add('hidden');
-                }
-            });
-        });
-
-        function saveGame(e) {
-            e.preventDefault();
-            
-            const gameId = document.getElementById('modal-game-id').value;
-            const title = document.getElementById('modal-game-title').value;
-            const subtitle = document.getElementById('modal-game-subtitle').value;
-            const cover = document.getElementById('modal-game-cover').value;
-            const wallpaper = document.getElementById('modal-game-wallpaper').value;
-            
-            let rawYoutubeInput = document.getElementById('modal-game-youtube-id').value.trim();
-            let ytVideoId = rawYoutubeInput;
-            if (rawYoutubeInput.includes("v=")) {
-                ytVideoId = rawYoutubeInput.split("v=")[1].split("&")[0];
-            } else if (rawYoutubeInput.includes("youtu.be/")) {
-                ytVideoId = rawYoutubeInput.split("youtu.be/")[1].split("?")[0];
-            }
-
-            const desc = document.getElementById('modal-game-desc').value;
-            
-            const vibe = document.querySelector('input[name="modal-game-vibe"]:checked').value;
-            let primary = '#dc2626';
-            let font = document.getElementById('modal-game-font').value;
-
-            if (vibe === 'custom') {
-                primary = document.getElementById('modal-game-color-primary').value;
-            } else {
-                if (vibe === 'classic') font = 'monospace';
-                else if (vibe === 'toy') font = 'VT323';
-                else if (vibe === 'rotten') font = 'Special Elite';
-                else if (vibe === 'shadow') font = 'Creepster';
-                else if (vibe === 'cyber') font = 'monospace';
-            }
-
-            if (gameId) {
-                const game = fnafDatabase.find(g => g.id === gameId);
-                if (game) {
-                    game.title = title;
-                    game.subtitle = subtitle;
-                    game.cover = cover;
-                    game.wallpaper = wallpaper;
-                    game.youtubeId = ytVideoId;
-                    game.theme = { vibe, primary, font };
-                    game.about.intro = desc;
-                }
-            } else {
-                const newId = 'fnaf-custom-' + Date.now();
-                const newGame = {
-                    id: newId,
-                    title: title,
-                    subtitle: subtitle,
-                    cover: cover,
-                    wallpaper: wallpaper,
-                    youtubeId: ytVideoId,
-                    theme: { vibe, primary, font },
-                    about: {
-                        title: "Análise de Sistema",
-                        intro: desc || "Nova instalação identificada sob a grade operacional.",
-                        history: "Relatórios históricos retidos sob sigilo corporativo.",
-                        curiosities: ["Canais de comunicação sofrendo distorção constante."]
-                    },
-                    characters: [
-                        {
-                            id: 'char-init-' + Date.now(),
-                            name: "Protótipo Animatrônico",
-                            image: "",
-                            role: "Entidade Experimental",
-                            behavior: "Move-se sempre que houver instabilidade no sinal da janela.",
-                            counter: "Monitore a rota correspondente constantemente."
-                        }
-                    ],
-                    survivalGuide: [
-                        {
-                            title: "Segurança de Energia",
-                            desc: "Não feche os sistemas se nenhum perigo iminente estiver nas imediações do terminal."
-                        }
-                    ]
-                };
-                fnafDatabase.push(newGame);
-            }
-
-            saveDatabase();
-            closeGameModal();
-            renderDesktopIcons();
-
-            if (selectedGameId) {
-                renderGameHub(selectedGameId);
-                const updated = fnafDatabase.find(g => g.id === selectedGameId);
-                if (updated && updated.wallpaper) {
-                    document.body.style.backgroundImage = `url('${updated.wallpaper}')`;
-                }
-            }
-        }
-
-        function deleteGame(id) {
-            const game = fnafDatabase.find(g => g.id === id);
-            if (!game) return;
-
-            if(confirm(`Deseja apagar permanentemente "${game.title}" do Fazbear OS? Todos os dados vinculados serão expurgados!`)) {
-                fnafDatabase = fnafDatabase.filter(g => g.id !== id);
-                saveDatabase();
-                renderDesktopIcons();
-                if (selectedGameId === id) {
-                    closeWindow();
-                }
-            }
-        }
-
-        // Backup controls
-        function openBackupModal() {
-            const dataString = JSON.stringify(fnafDatabase, null, 2);
-            document.getElementById('backup-json-data').value = dataString;
-            document.getElementById('import-json-data').value = '';
-            document.getElementById('backup-modal').classList.remove('hidden');
-        }
-
-        function closeBackupModal() {
-            document.getElementById('backup-modal').classList.add('hidden');
-        }
-
-        function copyBackupToClipboard() {
-            const textToCopy = document.getElementById('backup-json-data');
-            textToCopy.select();
-            try {
-                document.execCommand('copy');
-                showToast("JSON enviado para Área de Transferência.");
-            } catch(err) {
-                showToast("Falha na cópia.");
-            }
-        }
-
-        function downloadBackupFile() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fnafDatabase, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "fazbear_os_backup.json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showToast("Backup baixado.");
-        }
-
-        function importBackupData() {
-            const importArea = document.getElementById('import-json-data');
-            const rawJson = importArea.value.trim();
-
-            if (!rawJson) {
-                alert("Insira os dados do JSON primeiro.");
+            if(filtered.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; font-size:12px; color:var(--text-error)">Nenhum arquivo confidencial registrado nesta categoria. Vá em Iniciar -> Painel Admin para injetar dados.</div>`;
                 return;
             }
 
-            try {
-                const parsed = JSON.parse(rawJson);
-                if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id && parsed[0].title) {
-                    if (confirm(`Substituir totalmente o banco de dados do Fazbear OS com as ${parsed.length} entradas importadas?`)) {
-                        fnafDatabase = parsed;
-                        saveDatabase();
-                        renderDesktopIcons();
-                        closeBackupModal();
-                        if (selectedGameId) {
-                            closeWindow();
-                        }
+            filtered.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = "item-preview-card";
+                card.onclick = () => launchStoriesViewer(filtered, idx);
+                card.innerHTML = `
+                    <img src="${item.img || 'https://i.ytimg.com/vi/0MvU_S0E4hA/maxresdefault.jpg'}" onerror="this.src='https://i.ytimg.com/vi/0MvU_S0E4hA/maxresdefault.jpg'">
+                    <div>${item.title}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ENGINE COMPLETA DE STORIES (MECÂNICA IGUAL INSTAGRAM)
+        function launchStoriesViewer(list, startIndex) {
+            activeStoriesList = list;
+            storyIndex = startIndex;
+            document.getElementById('story-viewer-ui').style.display = 'flex';
+            setupStoryItem();
+        }
+
+        function setupStoryItem() {
+            clearInterval(storyInterval);
+            if(storyIndex < 0) storyIndex = 0;
+            if(storyIndex >= activeStoriesList.length) {
+                closeStoryViewer();
+                return;
+            }
+
+            const item = activeStoriesList[storyIndex];
+            const cap = window.fazbearCloudData.capitulos[item.capId];
+
+            // Render das Barras Superiores de Progresso
+            const barsContainer = document.getElementById('story-header-bars');
+            barsContainer.innerHTML = "";
+            activeStoriesList.forEach((_, idx) => {
+                const bg = document.createElement('div');
+                bg.className = "story-bar-bg";
+                const fill = document.createElement('div');
+                fill.className = "story-bar-fill";
+                
+                if(idx < storyIndex) fill.style.width = "100%";
+                if(idx === storyIndex) fill.id = "current-story-fill-bar";
+                
+                bg.appendChild(fill);
+                barsContainer.appendChild(bg);
+            });
+
+            document.getElementById('story-ui-avatar').src = cap.icon || '';
+            document.getElementById('story-ui-game-title').innerText = `${cap.name} • [${item.category.toUpperCase()}]`;
+            document.getElementById('story-ui-bg-content').style.backgroundImage = `url('${item.img || ''}')`;
+            document.getElementById('story-ui-title').innerText = item.title;
+            document.getElementById('story-ui-desc').innerText = item.desc;
+
+            // Transição Automática de 7 Segundos (Passos de 100ms para fluidez)
+            storyProgressValue = 0;
+            isStoryPaused = false;
+            storyInterval = setInterval(() => {
+                if(!isStoryPaused) {
+                    storyProgressValue += 1.43; // Aproximadamente 7000ms total
+                    const bar = document.getElementById('current-story-fill-bar');
+                    if(bar) bar.style.width = Math.min(storyProgressValue, 100) + "%";
+                    
+                    if(storyProgressValue >= 100) {
+                        navigateStory(1);
                     }
-                } else {
-                    alert("JSON inválido para os padrões do Fazbear OS.");
                 }
-            } catch(e) {
-                alert("Erro na análise dos dados: " + e.message);
+            }, 100);
+        }
+
+        function navigateStory(direction) {
+            storyIndex += direction;
+            setupStoryItem();
+        }
+
+        function pauseStoryProgress() { isStoryPaused = true; }
+        function resumeStoryProgress() { isStoryPaused = false; }
+
+        function closeStoryViewer() {
+            clearInterval(storyInterval);
+            document.getElementById('story-viewer-ui').style.display = 'none';
+        }
+
+        // SISTEMA DE JANELAS E TERMINAL TASKBAR
+        function closeWindow() {
+            document.getElementById('app-window').style.display = 'none';
+            document.getElementById('taskbar-active-programs').innerHTML = "";
+            // Reset de Som ao Fechar Janela
+            playYoutubeBackgroundTrack("");
+        }
+
+        function minimizeWindow() {
+            document.getElementById('app-window').style.display = 'none';
+        }
+
+        function updateTaskbarTabs(title) {
+            const container = document.getElementById('taskbar-active-programs');
+            container.innerHTML = `<div class="task-tab active" onclick="document.getElementById('app-window').style.display='flex'">📁 ${title}</div>`;
+        }
+
+        function toggleStartMenu() {
+            const menu = document.getElementById('system-start-menu');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        // AUTHENTICAÇÃO DOS ESTILO CONSOLE RESTRITO
+        function openAdminTerminal() {
+            toggleStartMenu();
+            loginStep = "user";
+            document.getElementById('dos-terminal-output').innerText = "Insira o Código de Identificação de Usuário:";
+            document.getElementById('dos-user-row').style.display = 'flex';
+            document.getElementById('dos-pass-row').style.display = 'none';
+            document.getElementById('dos-username-input').value = "";
+            document.getElementById('dos-password-input').value = "";
+            document.getElementById('admin-login-terminal').style.display = 'block';
+            document.getElementById('dos-username-input').focus();
+        }
+
+        document.getElementById('dos-username-input').addEventListener('keypress', function(e){
+            if(e.key === 'Enter') {
+                if(this.value.trim() === 'admin') {
+                    loginStep = "pass";
+                    document.getElementById('dos-terminal-output').innerText = "Usuário Confirmado. Insira a Chave de Segurança Corporativa:";
+                    document.getElementById('dos-user-row').style.display = 'none';
+                    document.getElementById('dos-pass-row').style.display = 'flex';
+                    document.getElementById('dos-password-input').focus();
+                } else {
+                    document.getElementById('dos-terminal-output').innerText = "ACESSO NEGADO: Usuário não cadastrado.";
+                    setTimeout(() => document.getElementById('admin-login-terminal').style.display = 'none', 1500);
+                }
+            }
+        });
+
+        document.getElementById('dos-password-input').addEventListener('keypress', function(e){
+            if(e.key === 'Enter') {
+                // Senha configurada nas diretrizes: fazbear1983
+                if(this.value === 'fazbear1983') {
+                    document.getElementById('dos-terminal-output').innerText = "AUTENTICAÇÃO PROTOCOLADA. ABRINDO INTERFACE DE OPERAÇÕES CLOUD...";
+                    setTimeout(() => {
+                        document.getElementById('admin-login-terminal').style.display = 'none';
+                        openAdminDashboardReal();
+                    }, 1200);
+                } else {
+                    document.getElementById('dos-terminal-output').innerText = "SENHA FALHOU. SISTEMA CONGELADO.";
+                    setTimeout(() => document.getElementById('admin-login-terminal').style.display = 'none', 1500);
+                }
+            }
+        });
+
+        // FORMULÁRIOS PANEL ADMIN ADAPTATIVOS
+        function openAdminDashboardReal() {
+            document.getElementById('admin-modal-backdrop').style.display = 'block';
+            document.getElementById('admin-dashboard-modal').style.display = 'flex';
+            populateAdminDropdowns();
+            renderAdminStoriesList();
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal-backdrop').style.display = 'none';
+            document.getElementById('admin-dashboard-modal').style.display = 'none';
+        }
+
+        function switchAdminTab(target) {
+            document.getElementById('tab-adm-cap').classList.remove('active');
+            document.getElementById('tab-adm-item').classList.remove('active');
+            
+            if(target === 'capitulos') {
+                document.getElementById('tab-adm-cap').classList.add('active');
+                document.getElementById('form-section-capitulos').style.display = 'block';
+                document.getElementById('form-section-conteudo').style.display = 'none';
+            } else {
+                document.getElementById('tab-adm-item').classList.add('active');
+                document.getElementById('form-section-capitulos').style.display = 'none';
+                document.getElementById('form-section-conteudo').style.display = 'block';
+                renderAdminStoriesList();
             }
         }
 
-        // Operating System startup
-        window.onload = function() {
-            initDatabase();
-            renderDesktopIcons();
-            startSystemClock();
-            updateAdminUIState();
+        function populateAdminDropdowns() {
+            const select = document.getElementById('story-target-cap');
+            if(!select) return;
+            select.innerHTML = "";
+            Object.values(window.fazbearCloudData.capitulos).forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
         }
+
+        function renderAdminStoriesList() {
+            const box = document.getElementById('admin-removable-stories-list');
+            if(!box) return;
+            box.innerHTML = "";
+            
+            window.fazbearCloudData.stories.forEach(s => {
+                const row = document.createElement('div');
+                row.style.cssText = "display:flex; justify-content:space-between; font-size:11px; padding:3px; border-bottom:1px solid #222; align-items:center;";
+                row.innerHTML = `
+                    <span>[${s.capId.toUpperCase()}] - ${s.title}</span>
+                    <button class="game-nav-btn btn-danger" style="padding:2px 5px; font-size:9px;" onclick="removeStoryItemCloud('${s.id}')">Excluir</button>
+                `;
+                box.appendChild(row);
+            });
+        }
+
+        // INTEGRAÇÃO CONTROLE EXCLUSIVO API YOUTUBE EM IFRAME SANDBOX
+        function onYouTubeIframeAPIReady() {
+            try {
+                ytPlayer = new YT.Player('fazbear-yt-player', {
+                    height: '10',
+                    width: '10',
+                    videoId: '',
+                    playerVars: {
+                        'autoplay': 1,
+                        'controls': 0,
+                        'loop': 1,
+                        'playlist': ''
+                    },
+                    events: {
+                        'onReady': (event) => { if(!isGlobalMuted) event.target.setVolume(60); }
+                    }
+                });
+            } catch(e) { console.log("YT API Blocker interceptado de forma segura."); }
+        }
+        window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
+        function playYoutubeBackgroundTrack(videoId) {
+            if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
+            try {
+                if (!videoId) {
+                    ytPlayer.stopVideo();
+                } else {
+                    ytPlayer.loadVideoById({ videoId: videoId });
+                    if(isGlobalMuted) ytPlayer.mute(); else { ytPlayer.unMute(); ytPlayer.setVolume(50); }
+                }
+            } catch (e) { console.log("Erro ao acionar stream de trilha."); }
+        }
+
+        function toggleMuteGlobal() {
+            toggleStartMenu();
+            isGlobalMuted = !isGlobalMuted;
+            if(!ytPlayer) return;
+            try {
+                if(isGlobalMuted) {
+                    ytPlayer.mute();
+                    alert("Áudio Geral do Sistema: MUTADO");
+                } else {
+                    ytPlayer.unMute();
+                    ytPlayer.setVolume(50);
+                    alert("Áudio Geral do Sistema: ATIVADO");
+                }
+            } catch(e){}
+        }
+
+        // Carrega o script base do Player do YouTube de forma assíncrona
+        (function() {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        })();
     </script>
 </body>
 </html>
+"""
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+
+print("index.html gerado com sucesso!")
