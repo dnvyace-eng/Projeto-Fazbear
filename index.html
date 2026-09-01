@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fazbear Archives - Galeria, Lore & Painel Admin</title>
+  <title>Fazbear Archives - Galeria, Lore & Painel Admin (Nuvem)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -26,12 +26,6 @@
       background-size: 100% 3px, 3px 100%;
       pointer-events: none;
       opacity: 0.7;
-    }
-
-    /* Estática / Ruído */
-    .glitch-bg {
-      background-image: radial-gradient(rgba(0, 255, 65, 0.1) 1px, transparent 0);
-      background-size: 4px 4px;
     }
 
     /* Temas Dinâmicos por Jogo */
@@ -95,8 +89,14 @@
     body.theme-fnafsb .accent-text { color: #ff007f; text-shadow: 0 0 5px #ff007f; }
     body.theme-fnafsb .card-bg { background-color: rgba(36, 7, 56, 0.85); }
 
-    /* Transição suave para modal */
     .modal-active { display: flex !important; }
+
+    /* Animação do Toast */
+    @keyframes slideIn {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .toast-anim { animation: slideIn 0.3s ease-out forwards; }
   </style>
 </head>
 <body class="theme-fnaf1 crt min-h-screen flex flex-col transition-colors duration-500 selection:bg-red-900 selection:text-white">
@@ -119,8 +119,14 @@
         <!-- Gerado via JavaScript -->
       </nav>
 
-      <!-- Ações (Admin & Busca) -->
+      <!-- Estado da Nuvem e Acesso Admin -->
       <div class="flex items-center gap-3">
+        <!-- Indicador de Conexão em Tempo Real -->
+        <div id="cloud-status" class="px-2 py-1 text-[10px] font-bold rounded border border-yellow-600 bg-yellow-950/60 text-yellow-400 flex items-center gap-1">
+          <i class="fa-solid fa-cloud-arrow-down animate-bounce"></i>
+          <span id="cloud-status-text">A ligar à Nuvem...</span>
+        </div>
+
         <button onclick="openAdminLogin()" class="px-3 py-1.5 border accent-border accent-bg hover:opacity-80 text-xs font-bold rounded flex items-center gap-2 transition" title="Modo Admin (Atalho: Ctrl+Shift+A)">
           <i class="fa-solid fa-lock" id="admin-icon"></i>
           <span id="admin-btn-label">ADMIN</span>
@@ -141,7 +147,7 @@
       <!-- Abas da Galeria -->
       <div class="flex gap-2 border accent-border p-1 rounded bg-black/60">
         <button onclick="switchTab('animatronics')" id="tab-animatronics" class="px-4 py-2 text-sm font-bold rounded accent-bg accent-text transition">
-          <i class="fa-solid fa-robot mr-1.5"></i>Animatrônicos
+          <i class="fa-solid fa-robot mr-1.5"></i>Animatrónicos
         </button>
         <button onclick="switchTab('lore')" id="tab-lore" class="px-4 py-2 text-sm font-bold rounded hover:bg-white/10 opacity-70 transition">
           <i class="fa-solid fa-book-skull mr-1.5"></i>História & Lore
@@ -160,11 +166,11 @@
     <section id="section-animatronics" class="space-y-6">
       <div class="flex justify-between items-center">
         <h3 class="text-xl font-bold border-b-2 accent-border pb-1 inline-block">
-          <i class="fa-solid fa-users-viewfinder mr-2"></i>GALERIA DE ANIMATRÔNICOS
+          <i class="fa-solid fa-users-viewfinder mr-2"></i>GALERIA DE ANIMATRÓNICOS
         </h3>
         <div id="admin-add-animatronic-btn" class="hidden">
           <button onclick="openAnimatronicModal()" class="px-3 py-1 bg-green-700 hover:bg-green-600 text-white text-xs font-bold rounded flex items-center gap-1">
-            <i class="fa-solid fa-plus"></i> Novo Animatrônico
+            <i class="fa-solid fa-plus"></i> Novo Animatrónico
           </button>
         </div>
       </div>
@@ -216,11 +222,27 @@
   <footer class="border-t accent-border bg-black/90 py-6 px-4 mt-12 text-center text-xs opacity-75">
     <div class="max-w-7xl mx-auto space-y-2">
       <p>© Fazbear Entertainment. Todos os direitos reservados. Não nos responsabilizamos por mordidas, lesões ou desaparecimentos repentinos.</p>
-      <p class="text-gray-500">Pressione <kbd class="px-1.5 py-0.5 border border-gray-600 rounded bg-gray-900 text-gray-300">Ctrl + Shift + A</kbd> para acessar o Painel do Administrador.</p>
+      <p class="text-gray-500">Pressione <kbd class="px-1.5 py-0.5 border border-gray-600 rounded bg-gray-900 text-gray-300">Ctrl + Shift + A</kbd> para aceder ao Painel do Administrador.</p>
     </div>
   </footer>
 
+  <!-- CONTALHADOR DE TOASTS DE NOTIFICAÇÃO -->
+  <div id="toast-container" class="fixed bottom-4 left-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
   <!-- ==================== MODAIS DE SISTEMA & ADMIN ==================== -->
+
+  <!-- MODAL DE CONFIRMAÇÃO CUSTOMIZADO -->
+  <div id="modal-confirm" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4">
+    <div class="border-2 accent-border card-bg max-w-sm w-full p-6 rounded shadow-2xl text-center space-y-4">
+      <i class="fa-solid fa-triangle-exclamation text-4xl text-yellow-500 animate-pulse"></i>
+      <h3 id="confirm-modal-title" class="text-lg font-bold uppercase accent-text">Confirmar Ação</h3>
+      <p id="confirm-modal-msg" class="text-xs opacity-80">Tem a certeza que deseja prosseguir?</p>
+      <div class="flex gap-3 pt-2">
+        <button id="confirm-modal-cancel" class="w-1/2 py-2 border border-gray-600 text-xs font-bold rounded hover:bg-gray-800">CANCELAR</button>
+        <button id="confirm-modal-ok" class="w-1/2 py-2 bg-red-900 border border-red-500 text-red-200 text-xs font-bold rounded hover:bg-red-800">CONFIRMAR</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL DE LOGIN ADMIN -->
   <div id="modal-admin-login" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4">
@@ -237,10 +259,10 @@
 
       <form onsubmit="handleAdminLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs uppercase mb-1">Senha do Terminal:</label>
-          <input type="password" id="admin-pass-input" class="w-full bg-black/80 border accent-border px-3 py-2 text-sm rounded text-white focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="Digite a senha..." required>
+          <label class="block text-xs uppercase mb-1">Palavra-passe do Terminal:</label>
+          <input type="password" id="admin-pass-input" class="w-full bg-black/80 border accent-border px-3 py-2 text-sm rounded text-white focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="Digite a palavra-passe..." required>
         </div>
-        <p id="admin-login-error" class="text-red-500 text-xs hidden"><i class="fa-solid fa-triangle-exclamation"></i> Senha incorreta! Tente novamente.</p>
+        <p id="admin-login-error" class="text-red-500 text-xs hidden"><i class="fa-solid fa-triangle-exclamation"></i> Palavra-passe incorreta! Tente novamente.</p>
         
         <div class="flex gap-2">
           <button type="button" onclick="closeModal('modal-admin-login')" class="w-1/2 py-2 border border-gray-600 text-xs font-bold rounded hover:bg-gray-800">CANCELAR</button>
@@ -260,7 +282,7 @@
     </button>
   </div>
 
-  <!-- MODAL: CONFIGURAÇÕES GERAIS DO SITE (TITULO, SUBTITULO, JOGOS) -->
+  <!-- MODAL: CONFIGURAÇÕES GERAIS DO SITE -->
   <div id="modal-site-settings" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4">
     <div class="border-2 accent-border card-bg max-w-lg w-full p-6 rounded shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <button onclick="closeModal('modal-site-settings')" class="absolute top-3 right-3 text-gray-400 hover:text-white">
@@ -293,18 +315,18 @@
         </div>
 
         <div class="flex justify-between items-center pt-2">
-          <button type="button" onclick="resetToDefaults()" class="px-3 py-1.5 bg-red-950 border border-red-700 text-red-300 text-xs rounded hover:bg-red-900">
+          <button type="button" onclick="promptResetDefaults()" class="px-3 py-1.5 bg-red-950 border border-red-700 text-red-300 text-xs rounded hover:bg-red-900">
             <i class="fa-solid fa-rotate-left mr-1"></i>Resetar Dados Iniciais
           </button>
           <button type="submit" class="px-4 py-2 accent-bg accent-border text-xs font-bold rounded accent-text hover:opacity-80">
-            Salvar Alterações
+            Guardar na Nuvem
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: EDITAR / ADICIONAR ANIMATRÔNICO -->
+  <!-- MODAL: EDITAR / ADICIONAR ANIMATRÓNICO -->
   <div id="modal-animatronic" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4">
     <div class="border-2 accent-border card-bg max-w-md w-full p-6 rounded shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <button onclick="closeModal('modal-animatronic')" class="absolute top-3 right-3 text-gray-400 hover:text-white">
@@ -312,20 +334,20 @@
       </button>
 
       <h3 id="animatronic-modal-title" class="text-xl font-bold mb-4 accent-text border-b border-gray-700 pb-2">
-        Adicionar Animatrônico
+        Adicionar Animatrónico
       </h3>
 
       <form onsubmit="saveAnimatronic(event)" class="space-y-4">
         <input type="hidden" id="animatronic-id">
 
         <div>
-          <label class="block text-xs uppercase mb-1">Nome do Animatrônico:</label>
+          <label class="block text-xs uppercase mb-1">Nome do Animatrónico:</label>
           <input type="text" id="animatronic-name" class="w-full bg-black/80 border accent-border px-3 py-2 text-sm rounded text-white" placeholder="Ex: Freddy Fazbear" required>
         </div>
 
         <div>
           <label class="block text-xs uppercase mb-1">Ocupação / Função:</label>
-          <input type="text" id="animatronic-role" class="w-full bg-black/80 border accent-border px-3 py-2 text-sm rounded text-white" placeholder="Ex: Cantor Principal / Mascot" required>
+          <input type="text" id="animatronic-role" class="w-full bg-black/80 border accent-border px-3 py-2 text-sm rounded text-white" placeholder="Ex: Vocalista Principal / Mascot" required>
         </div>
 
         <div>
@@ -345,7 +367,7 @@
 
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeModal('modal-animatronic')" class="px-3 py-2 border border-gray-600 text-xs font-bold rounded">Cancelar</button>
-          <button type="submit" class="px-4 py-2 accent-bg accent-border text-xs font-bold rounded accent-text">Salvar Animatrônico</button>
+          <button type="submit" class="px-4 py-2 accent-bg accent-border text-xs font-bold rounded accent-text">Guardar Animatrónico</button>
         </div>
       </form>
     </div>
@@ -382,7 +404,7 @@
 
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeModal('modal-lore')" class="px-3 py-2 border border-gray-600 text-xs font-bold rounded">Cancelar</button>
-          <button type="submit" class="px-4 py-2 accent-bg accent-border text-xs font-bold rounded accent-text">Salvar História</button>
+          <button type="submit" class="px-4 py-2 accent-bg accent-border text-xs font-bold rounded accent-text">Guardar História</button>
         </div>
       </form>
     </div>
@@ -428,16 +450,30 @@
 
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeModal('modal-theory')" class="px-3 py-2 border border-gray-600 text-xs font-bold rounded">Cancelar</button>
-          <button type="submit" class="px-4 py-2 accent-bg accent-border text-xs font-bold rounded accent-text">Salvar Teoria</button>
+          <button type="submit" class="px-4 py-2 accent-bg accent-border text-xs font-bold rounded accent-text">Guardar Teoria</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- SCRIPT LÓGICO E NAVEGAÇÃO COMPLETA -->
-  <script>
+  <!-- FIREBASE INTEGRATION & APLICAÇÃO -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+    import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+    // CONFIGURAÇÃO FIREBASE NO AMBIENTE
+    const firebaseConfig = JSON.parse(__firebase_config);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+    // Documento de armazenamento público partilhado por todos os utilizadores
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'fazbear_store', 'main_data');
+
     // =========================================================================
-    // ESTRUTURA DE DADOS PADRÃO DO SITE
+    // ESTRUTURA DE DADOS INICIAIS
     // =========================================================================
     const initialSiteData = {
       config: {
@@ -678,48 +714,100 @@
       }
     };
 
-    // =========================================================================
     // ESTADO GLOBAL DA APLICAÇÃO
-    // =========================================================================
-    let siteData = {};
+    let siteData = JSON.parse(JSON.stringify(initialSiteData));
     let currentGameId = "fnaf1";
     let currentTab = "animatronics";
     let isAdminLoggedIn = false;
+    let currentUser = null;
 
-    // =========================================================================
-    // INICIALIZAÇÃO
-    // =========================================================================
-    window.addEventListener('DOMContentLoaded', () => {
-      loadStateFromStorage();
-      renderGameButtons();
-      loadGame(currentGameId);
+    // INICIALIZAÇÃO E AUTENTICAÇÃO
+    window.addEventListener('DOMContentLoaded', async () => {
       setupKeyboardShortcuts();
+      initAuth();
     });
 
-    function loadStateFromStorage() {
-      const saved = localStorage.getItem('fazbear_archives_data');
-      if (saved) {
-        try {
-          siteData = JSON.parse(saved);
-        } catch (e) {
+    async function initAuth() {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Erro na autenticação Firebase:", err);
+      }
+    }
+
+    // LISTENER DE ESTADO DE AUTENTICAÇÃO E TEMPO REAL FIRESTORE
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      if (user) {
+        setupFirestoreRealtimeListener();
+      }
+    });
+
+    function setupFirestoreRealtimeListener() {
+      if (!currentUser) return;
+
+      onSnapshot(docRef, (snapshot) => {
+        const cloudStatus = document.getElementById('cloud-status');
+        const cloudText = document.getElementById('cloud-status-text');
+
+        if (snapshot.exists()) {
+          siteData = snapshot.data();
+        } else {
+          // Se não existir dados no banco, publica a versão inicial
+          setDoc(docRef, initialSiteData);
           siteData = initialSiteData;
         }
-      } else {
-        siteData = JSON.parse(JSON.stringify(initialSiteData));
+
+        // Atualizar estado da nuvem na barra
+        if (cloudStatus && cloudText) {
+          cloudStatus.className = "px-2 py-1 text-[10px] font-bold rounded border border-green-600 bg-green-950/60 text-green-400 flex items-center gap-1";
+          cloudText.innerText = "Nuvem Sincronizada";
+          cloudStatus.querySelector('i').className = "fa-solid fa-cloud-check";
+        }
+
+        // Atualizar interface gráfica
+        updateUI();
+
+      }, (error) => {
+        console.error("Erro ao sincronizar Firestore:", error);
+        const cloudStatus = document.getElementById('cloud-status');
+        const cloudText = document.getElementById('cloud-status-text');
+        if (cloudStatus && cloudText) {
+          cloudStatus.className = "px-2 py-1 text-[10px] font-bold rounded border border-red-600 bg-red-950/60 text-red-400 flex items-center gap-1";
+          cloudText.innerText = "Erro de Conexão";
+        }
+        showToast("Erro na ligação com a nuvem.", "error");
+      });
+    }
+
+    // SALVAR ALTERAÇÕES NO FIRESTORE
+    async function saveToCloud() {
+      if (!currentUser) {
+        showToast("Utilizador não autenticado na nuvem.", "error");
+        return;
       }
-      
+      try {
+        await setDoc(docRef, siteData);
+        showToast("Sincronizado com a nuvem em tempo real!", "success");
+      } catch (e) {
+        console.error("Erro ao guardar na nuvem:", e);
+        showToast("Falha ao gravar alterações na nuvem.", "error");
+      }
+    }
+
+    function updateUI() {
       // Aplicar textos da configuração geral
-      document.getElementById('site-title-display').innerText = siteData.config.siteTitle;
-      document.getElementById('site-subtitle-display').innerText = siteData.config.siteSubtitle;
+      document.getElementById('site-title-display').innerText = siteData.config.siteTitle || "FAZBEAR ARCHIVES";
+      document.getElementById('site-subtitle-display').innerText = siteData.config.siteSubtitle || "";
+
+      renderGameButtons();
+      loadGame(currentGameId);
     }
 
-    function saveStateToStorage() {
-      localStorage.setItem('fazbear_archives_data', JSON.stringify(siteData));
-    }
-
-    // =========================================================================
-    // NAVEGAÇÃO E RENDEREZAÇÃO
-    // =========================================================================
     function renderGameButtons() {
       const container = document.getElementById('game-buttons-container');
       container.innerHTML = '';
@@ -728,33 +816,32 @@
         const game = siteData.games[gameKey];
         const btn = document.createElement('button');
         btn.className = `px-3 py-1.5 border accent-border text-xs font-bold rounded transition hover:scale-105 ${currentGameId === gameKey ? 'accent-bg accent-text' : 'bg-black/60 opacity-70'}`;
-        btn.innerText = game.name.split(':')[0]; // Nome curto
+        btn.innerText = game.name.split(':')[0];
         btn.onclick = () => loadGame(gameKey);
         container.appendChild(btn);
       });
     }
 
     function loadGame(gameId) {
-      if (!siteData.games[gameId]) return;
+      if (!siteData.games[gameId]) {
+        gameId = Object.keys(siteData.games)[0] || 'fnaf1';
+      }
       currentGameId = gameId;
 
       const game = siteData.games[gameId];
 
-      // Atualizar Tema
       document.body.className = `${game.themeClass} crt min-h-screen flex flex-col transition-colors duration-500 selection:bg-red-900 selection:text-white`;
 
-      // Atualizar Cabeçalhos
       document.getElementById('current-game-title').innerText = game.name;
       document.getElementById('current-game-desc').innerText = game.desc;
 
-      // Renderizar conteúdo do jogo ativo
       renderGameButtons();
       renderAnimatronics();
       renderLore();
       renderTheories();
     }
 
-    function switchTab(tabName) {
+    window.switchTab = function(tabName) {
       currentTab = tabName;
       document.getElementById('section-animatronics').classList.add('hidden');
       document.getElementById('section-lore').classList.add('hidden');
@@ -766,20 +853,16 @@
 
       document.getElementById(`section-${tabName}`).classList.remove('hidden');
       document.getElementById(`tab-${tabName}`).classList.add('accent-bg', 'accent-text');
-    }
+    };
 
-    // =========================================================================
-    // RENDEREZAÇÃO DOS CONTEÚDOS
-    // =========================================================================
-
-    // ANIMATRÔNICOS
+    // RENDERAÇÃO DAS LISTAS
     function renderAnimatronics() {
       const grid = document.getElementById('animatronics-grid');
-      const list = siteData.games[currentGameId].animatronics || [];
+      const list = siteData.games[currentGameId]?.animatronics || [];
       grid.innerHTML = '';
 
       if (list.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-center py-8 opacity-60">Nenhum animatrônico cadastrado para este jogo.</p>`;
+        grid.innerHTML = `<p class="col-span-full text-center py-8 opacity-60">Nenhum animatrónico cadastrado para este jogo.</p>`;
         return;
       }
 
@@ -800,7 +883,7 @@
           ${isAdminLoggedIn ? `
             <div class="flex gap-2 mt-4 pt-2 border-t border-gray-800 justify-end">
               <button onclick="openAnimatronicModal('${item.id}')" class="px-2 py-1 bg-blue-900 text-blue-200 text-xs rounded hover:bg-blue-800"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="deleteAnimatronic('${item.id}')" class="px-2 py-1 bg-red-900 text-red-200 text-xs rounded hover:bg-red-800"><i class="fa-solid fa-trash"></i></button>
+              <button onclick="confirmDelete('animatronic', '${item.id}')" class="px-2 py-1 bg-red-900 text-red-200 text-xs rounded hover:bg-red-800"><i class="fa-solid fa-trash"></i></button>
             </div>
           ` : ''}
         `;
@@ -808,14 +891,13 @@
       });
     }
 
-    // LORE
     function renderLore() {
       const container = document.getElementById('lore-container');
-      const list = siteData.games[currentGameId].lore || [];
+      const list = siteData.games[currentGameId]?.lore || [];
       container.innerHTML = '';
 
       if (list.length === 0) {
-        container.innerHTML = `<p class="text-center py-8 opacity-60">Nenhum registro de lore cadastrado para este jogo.</p>`;
+        container.innerHTML = `<p class="text-center py-8 opacity-60">Nenhum registo de lore cadastrado para este jogo.</p>`;
         return;
       }
 
@@ -831,7 +913,7 @@
             ${isAdminLoggedIn ? `
               <div class="flex gap-2">
                 <button onclick="openLoreModal('${item.id}')" class="px-2 py-1 bg-blue-900 text-blue-200 text-xs rounded hover:bg-blue-800"><i class="fa-solid fa-pen"></i></button>
-                <button onclick="deleteLore('${item.id}')" class="px-2 py-1 bg-red-900 text-red-200 text-xs rounded hover:bg-red-800"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="confirmDelete('lore', '${item.id}')" class="px-2 py-1 bg-red-900 text-red-200 text-xs rounded hover:bg-red-800"><i class="fa-solid fa-trash"></i></button>
               </div>
             ` : ''}
           </div>
@@ -841,10 +923,9 @@
       });
     }
 
-    // TEORIAS
     function renderTheories() {
       const container = document.getElementById('theories-container');
-      const list = siteData.games[currentGameId].theories || [];
+      const list = siteData.games[currentGameId]?.theories || [];
       container.innerHTML = '';
 
       if (list.length === 0) {
@@ -868,7 +949,7 @@
           ${isAdminLoggedIn ? `
             <div class="flex gap-2 mt-4 pt-2 border-t border-gray-800 justify-end">
               <button onclick="openTheoryModal('${item.id}')" class="px-2 py-1 bg-blue-900 text-blue-200 text-xs rounded hover:bg-blue-800"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="deleteTheory('${item.id}')" class="px-2 py-1 bg-red-900 text-red-200 text-xs rounded hover:bg-red-800"><i class="fa-solid fa-trash"></i></button>
+              <button onclick="confirmDelete('theory', '${item.id}')" class="px-2 py-1 bg-red-900 text-red-200 text-xs rounded hover:bg-red-800"><i class="fa-solid fa-trash"></i></button>
             </div>
           ` : ''}
         `;
@@ -876,12 +957,9 @@
       });
     }
 
-    // =========================================================================
-    // SISTEMA ADMIN DE AUTENTICAÇÃO E PERMISSÕES
-    // =========================================================================
+    // SISTEMA ADMIN
     function setupKeyboardShortcuts() {
       document.addEventListener('keydown', (e) => {
-        // Atalho Ctrl + Shift + A para login Admin
         if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
           e.preventDefault();
           openAdminLogin();
@@ -889,7 +967,7 @@
       });
     }
 
-    function openAdminLogin() {
+    window.openAdminLogin = function() {
       if (isAdminLoggedIn) {
         openSiteSettingsModal();
       } else {
@@ -897,9 +975,9 @@
         document.getElementById('admin-login-error').classList.add('hidden');
         openModal('modal-admin-login');
       }
-    }
+    };
 
-    function handleAdminLogin(e) {
+    window.handleAdminLogin = function(e) {
       e.preventDefault();
       const inputPass = document.getElementById('admin-pass-input').value;
 
@@ -907,17 +985,17 @@
         isAdminLoggedIn = true;
         closeModal('modal-admin-login');
         updateAdminUI();
-        alert('Acesso Concedido ao Modo Admin!');
+        showToast("Modo Admin Ativado com sucesso!", "success");
       } else {
         document.getElementById('admin-login-error').classList.remove('hidden');
       }
-    }
+    };
 
-    function logoutAdmin() {
+    window.logoutAdmin = function() {
       isAdminLoggedIn = false;
       updateAdminUI();
-      alert('Sessão de Admin Encerrada.');
-    }
+      showToast("Sessão Admin encerrada.", "info");
+    };
 
     function updateAdminUI() {
       const adminIcon = document.getElementById('admin-icon');
@@ -943,55 +1021,48 @@
         document.getElementById('admin-add-theory-btn').classList.add('hidden');
       }
 
-      // Re-renderizar páginas para exibir/ocultar botões de edição
       renderAnimatronics();
       renderLore();
       renderTheories();
     }
 
-    // =========================================================================
-    // GERENCIAMENTO DAS CONFIGURAÇÕES GERAIS DO SITE
-    // =========================================================================
-    function openSiteSettingsModal() {
+    // CONFIGURAÇÕES DO SITE
+    window.openSiteSettingsModal = function() {
       document.getElementById('edit-site-title').value = siteData.config.siteTitle;
       document.getElementById('edit-site-subtitle').value = siteData.config.siteSubtitle;
       document.getElementById('edit-game-title').value = siteData.games[currentGameId].name;
       document.getElementById('edit-game-desc').value = siteData.games[currentGameId].desc;
       openModal('modal-site-settings');
-    }
+    };
 
-    function saveSiteSettings(e) {
+    window.saveSiteSettings = function(e) {
       e.preventDefault();
       siteData.config.siteTitle = document.getElementById('edit-site-title').value;
       siteData.config.siteSubtitle = document.getElementById('edit-site-subtitle').value;
       siteData.games[currentGameId].name = document.getElementById('edit-game-title').value;
       siteData.games[currentGameId].desc = document.getElementById('edit-game-desc').value;
 
-      document.getElementById('site-title-display').innerText = siteData.config.siteTitle;
-      document.getElementById('site-subtitle-display').innerText = siteData.config.siteSubtitle;
-
-      saveStateToStorage();
-      loadGame(currentGameId);
+      saveToCloud();
       closeModal('modal-site-settings');
-    }
+    };
 
-    function resetToDefaults() {
-      if (confirm('Tem certeza que deseja restaurar as configurações originais? Suas alterações serão perdidas.')) {
-        localStorage.removeItem('fazbear_archives_data');
-        loadStateFromStorage();
-        loadGame(currentGameId);
-        closeModal('modal-site-settings');
-      }
-    }
+    window.promptResetDefaults = function() {
+      showConfirmModal(
+        "Restaurar Dados Iniciais",
+        "Tem a certeza que deseja restaurar as configurações de fábrica? Todas as edições gravadas na nuvem serão substituídas.",
+        async () => {
+          siteData = JSON.parse(JSON.stringify(initialSiteData));
+          await saveToCloud();
+          closeModal('modal-site-settings');
+        }
+      );
+    };
 
-    // =========================================================================
-    // CRUD DE ANIMATRÔNICOS
-    // =========================================================================
-    function openAnimatronicModal(id = null) {
-      const form = document.getElementById('animatronic-id');
+    // CRUD ANIMATRÓNICOS
+    window.openAnimatronicModal = function(id = null) {
       if (id) {
         const item = siteData.games[currentGameId].animatronics.find(a => a.id === id);
-        document.getElementById('animatronic-modal-title').innerText = "Editar Animatrônico";
+        document.getElementById('animatronic-modal-title').innerText = "Editar Animatrónico";
         document.getElementById('animatronic-id').value = item.id;
         document.getElementById('animatronic-name').value = item.name;
         document.getElementById('animatronic-role').value = item.role;
@@ -999,7 +1070,7 @@
         document.getElementById('animatronic-desc').value = item.desc;
         document.getElementById('animatronic-location').value = item.location || '';
       } else {
-        document.getElementById('animatronic-modal-title').innerText = "Adicionar Animatrônico";
+        document.getElementById('animatronic-modal-title').innerText = "Adicionar Animatrónico";
         document.getElementById('animatronic-id').value = '';
         document.getElementById('animatronic-name').value = '';
         document.getElementById('animatronic-role').value = '';
@@ -1008,9 +1079,9 @@
         document.getElementById('animatronic-location').value = '';
       }
       openModal('modal-animatronic');
-    }
+    };
 
-    function saveAnimatronic(e) {
+    window.saveAnimatronic = function(e) {
       e.preventDefault();
       const id = document.getElementById('animatronic-id').value;
       const newObj = {
@@ -1033,23 +1104,12 @@
         siteData.games[currentGameId].animatronics.push(newObj);
       }
 
-      saveStateToStorage();
-      renderAnimatronics();
+      saveToCloud();
       closeModal('modal-animatronic');
-    }
+    };
 
-    function deleteAnimatronic(id) {
-      if (confirm('Deseja excluir este animatrônico?')) {
-        siteData.games[currentGameId].animatronics = siteData.games[currentGameId].animatronics.filter(a => a.id !== id);
-        saveStateToStorage();
-        renderAnimatronics();
-      }
-    }
-
-    // =========================================================================
-    // CRUD DE HISTÓRIA / LORE
-    // =========================================================================
-    function openLoreModal(id = null) {
+    // CRUD LORE
+    window.openLoreModal = function(id = null) {
       if (id) {
         const item = siteData.games[currentGameId].lore.find(l => l.id === id);
         document.getElementById('lore-modal-title').innerText = "Editar História";
@@ -1065,9 +1125,9 @@
         document.getElementById('lore-content').value = '';
       }
       openModal('modal-lore');
-    }
+    };
 
-    function saveLore(e) {
+    window.saveLore = function(e) {
       e.preventDefault();
       const id = document.getElementById('lore-id').value;
       const newObj = {
@@ -1088,23 +1148,12 @@
         siteData.games[currentGameId].lore.push(newObj);
       }
 
-      saveStateToStorage();
-      renderLore();
+      saveToCloud();
       closeModal('modal-lore');
-    }
+    };
 
-    function deleteLore(id) {
-      if (confirm('Deseja excluir este registro de lore?')) {
-        siteData.games[currentGameId].lore = siteData.games[currentGameId].lore.filter(l => l.id !== id);
-        saveStateToStorage();
-        renderLore();
-      }
-    }
-
-    // =========================================================================
-    // CRUD DE TEORIAS
-    // =========================================================================
-    function openTheoryModal(id = null) {
+    // CRUD TEORIAS
+    window.openTheoryModal = function(id = null) {
       if (id) {
         const item = siteData.games[currentGameId].theories.find(t => t.id === id);
         document.getElementById('theory-modal-title').innerText = "Editar Teoria";
@@ -1122,9 +1171,9 @@
         document.getElementById('theory-content').value = '';
       }
       openModal('modal-theory');
-    }
+    };
 
-    function saveTheory(e) {
+    window.saveTheory = function(e) {
       e.preventDefault();
       const id = document.getElementById('theory-id').value;
       const newObj = {
@@ -1146,30 +1195,83 @@
         siteData.games[currentGameId].theories.push(newObj);
       }
 
-      saveStateToStorage();
-      renderTheories();
+      saveToCloud();
       closeModal('modal-theory');
-    }
+    };
 
-    function deleteTheory(id) {
-      if (confirm('Deseja excluir esta teoria?')) {
-        siteData.games[currentGameId].theories = siteData.games[currentGameId].theories.filter(t => t.id !== id);
-        saveStateToStorage();
-        renderTheories();
-      }
-    }
+    // ELIMINAÇÕES COM MODAL CUSTOMIZADO
+    window.confirmDelete = function(type, id) {
+      showConfirmModal(
+        "Confirmar Eliminação",
+        "Tem a certeza que deseja eliminar este item? Esta ação será refletida para todos os utilizadores.",
+        () => {
+          if (type === 'animatronic') {
+            siteData.games[currentGameId].animatronics = siteData.games[currentGameId].animatronics.filter(a => a.id !== id);
+          } else if (type === 'lore') {
+            siteData.games[currentGameId].lore = siteData.games[currentGameId].lore.filter(l => l.id !== id);
+          } else if (type === 'theory') {
+            siteData.games[currentGameId].theories = siteData.games[currentGameId].theories.filter(t => t.id !== id);
+          }
+          saveToCloud();
+        }
+      );
+    };
 
-    // UTILS MODAIS
-    function openModal(id) {
+    // UTILS MODAIS & NOTIFICAÇÕES (TOAST)
+    window.openModal = function(id) {
       const modal = document.getElementById(id);
       modal.classList.remove('hidden');
       modal.classList.add('modal-active');
-    }
+    };
 
-    function closeModal(id) {
+    window.closeModal = function(id) {
       const modal = document.getElementById(id);
       modal.classList.add('hidden');
       modal.classList.remove('modal-active');
+    };
+
+    function showConfirmModal(title, message, onOk) {
+      document.getElementById('confirm-modal-title').innerText = title;
+      document.getElementById('confirm-modal-msg').innerText = message;
+
+      const okBtn = document.getElementById('confirm-modal-ok');
+      const cancelBtn = document.getElementById('confirm-modal-cancel');
+
+      const cleanUp = () => {
+        closeModal('modal-confirm');
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      okBtn.onclick = () => {
+        onOk();
+        cleanUp();
+      };
+      cancelBtn.onclick = () => {
+        cleanUp();
+      };
+
+      openModal('modal-confirm');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bgClass = "bg-gray-900 border-gray-600 text-gray-200";
+      if (type === 'success') bgClass = "bg-green-950 border-green-500 text-green-200";
+      if (type === 'error') bgClass = "bg-red-950 border-red-500 text-red-200";
+
+      toast.className = `px-4 py-2 border text-xs font-bold rounded shadow-xl toast-anim pointer-events-auto flex items-center gap-2 ${bgClass}`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-check' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${message}`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
     }
   </script>
 </body>
