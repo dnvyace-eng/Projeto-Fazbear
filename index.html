@@ -696,73 +696,69 @@
             } catch(e) {}
         };
 
-        // Autenticar com o Firebase primeiro
+        // Autenticar com o Firebase primeiro (FORMA CORRETA E OBRIGATÓRIA)
         async function initAuthAndRealtime() {
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    setupRealtimeListeners();
-                } else {
-                    signInAnonymously(auth).catch(() => {
-                        setupRealtimeListeners();
-                    });
-                }
-            });
-
             try {
+                // 1. Tenta autenticar primeiro e ESPERA o resultado
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
+
+                // 2. Só inicia a escuta em tempo real SE estiver autenticado
+                if (auth.currentUser) {
+                    setupRealtimeListeners();
+                }
             } catch (e) {
-                console.warn("Aviso de Auth Firebase:", e.message);
+                console.warn("Erro crítico de Auth Firebase:", e.message);
+                showBanner("ERRO DE CONEXÃO FIREBASE: Autenticação falhou.");
+                enableLocalFallback();
             }
         }
 
         // ===============================================
         // FIREBASE REALTIME LISTENERS (Sincronização Automática)
         // ===============================================
+        let isUsingFallback = false;
+        
+        function enableLocalFallback() {
+            if (!isUsingFallback) {
+                isUsingFallback = true;
+                // Recuperar dados persistidos no localStorage
+                const savedAnims = localStorage.getItem('fnaf_local_animatronics');
+                if (savedAnims) window.state.animatronics = JSON.parse(savedAnims);
+                else if (window.state.animatronics.length === 0) window.state.animatronics = [...DEFAULT_ANIMATRONICS];
+
+                const savedLore = localStorage.getItem('fnaf_local_lore');
+                if (savedLore) window.state.lore = JSON.parse(savedLore);
+                else if (Object.keys(window.state.lore).length === 0) window.state.lore = { ...DEFAULT_LORE };
+
+                const savedTheories = localStorage.getItem('fnaf_local_theories');
+                if (savedTheories) window.state.theories = JSON.parse(savedTheories);
+                else if (window.state.theories.length === 0) window.state.theories = [...DEFAULT_THEORIES];
+
+                const savedUsers = localStorage.getItem('fnaf_local_users');
+                if (savedUsers) window.state.usersList = JSON.parse(savedUsers);
+
+                const statusText = document.getElementById('syncStatusText');
+                if (statusText) statusText.innerText = "MODO LOCAL (FIREBASE DESCONECTADO)";
+
+                const statusDot = document.getElementById('syncStatus');
+                if (statusDot) statusDot.className = "inline-block w-2 h-2 rounded-full bg-fnaf-red animate-pulse";
+
+                window.renderTabContent();
+            }
+        }
+
         function setupRealtimeListeners() {
-            let isUsingFallback = false;
-
-            const enableLocalFallback = () => {
-                if (!isUsingFallback) {
-                    isUsingFallback = true;
-                    // Recuperar dados persistidos no localStorage
-                    const savedAnims = localStorage.getItem('fnaf_local_animatronics');
-                    if (savedAnims) window.state.animatronics = JSON.parse(savedAnims);
-                    else if (window.state.animatronics.length === 0) window.state.animatronics = [...DEFAULT_ANIMATRONICS];
-
-                    const savedLore = localStorage.getItem('fnaf_local_lore');
-                    if (savedLore) window.state.lore = JSON.parse(savedLore);
-                    else if (Object.keys(window.state.lore).length === 0) window.state.lore = { ...DEFAULT_LORE };
-
-                    const savedTheories = localStorage.getItem('fnaf_local_theories');
-                    if (savedTheories) window.state.theories = JSON.parse(savedTheories);
-                    else if (window.state.theories.length === 0) window.state.theories = [...DEFAULT_THEORIES];
-
-                    const savedUsers = localStorage.getItem('fnaf_local_users');
-                    if (savedUsers) window.state.usersList = JSON.parse(savedUsers);
-
-                    const statusText = document.getElementById('syncStatusText');
-                    if (statusText) statusText.innerText = "MODO LOCAL (DADOS SALVOS OFFLINE)";
-
-                    const statusDot = document.getElementById('syncStatus');
-                    if (statusDot) statusDot.className = "inline-block w-2 h-2 rounded-full bg-fnaf-yellow animate-pulse";
-
-                    window.renderTabContent();
-                }
-            };
+            if (!auth.currentUser) return;
 
             const handlePermissionError = (colName, error) => {
-                console.warn(`[Fazbear OS] Firestore ${colName} offline/sem permissão:`, error.message);
+                console.error(`[Fazbear OS] ERRO DE PERMISSÃO no Firestore (${colName}):`, error.message);
+                showBanner("FIREBASE BLOQUEADO! Vá ao console do Firebase e mude as regras para 'allow read, write: if true;'");
                 enableLocalFallback();
             };
-
-            if (!auth.currentUser) {
-                enableLocalFallback();
-                return;
-            }
 
             // 1. ANIMATRONICS EM TEMPO REAL
             onSnapshot(getPublicCollection('animatronics'), (snapshot) => {
