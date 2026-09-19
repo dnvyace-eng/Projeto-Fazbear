@@ -698,10 +698,12 @@
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    await signInAnonymously(auth);
+                    await signInAnonymously(auth).catch(err => {
+                        console.warn("Autenticação anônima não ativa no Console Firebase:", err.message);
+                    });
                 }
             } catch (e) {
-                console.warn("Auth error fallback to anonymous:", e);
+                console.warn("Aviso de Auth Firebase:", e.message);
             }
 
             // Inicializar Listeners Realtime (Sem botão de recarregar)
@@ -712,59 +714,81 @@
         // FIREBASE REALTIME LISTENERS (Sincronização Automática)
         // ===============================================
         function setupRealtimeListeners() {
-            // Path público unificado no Firestore
-            const publicCol = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
+            const publicCol = (colName) => collection(db, colName);
+
+            let isUsingFallback = false;
+
+            const handlePermissionError = (colName, error) => {
+                console.warn(`[Fazbear OS] Firestore ${colName} offline/sem permissão:`, error.message);
+                if (!isUsingFallback) {
+                    isUsingFallback = true;
+                    // Preencher estado local se o Firestore estiver bloqueado
+                    if (window.state.animatronics.length === 0) window.state.animatronics = [...DEFAULT_ANIMATRONICS];
+                    if (Object.keys(window.state.lore).length === 0) window.state.lore = { ...DEFAULT_LORE };
+                    if (window.state.theories.length === 0) window.state.theories = [...DEFAULT_THEORIES];
+                    
+                    const statusText = document.getElementById('syncStatusText');
+                    if (statusText) statusText.innerText = "MODO LOCAL (SISTEMA OFFLINE)";
+                    
+                    const statusDot = document.getElementById('syncStatus');
+                    if (statusDot) statusDot.className = "inline-block w-2 h-2 rounded-full bg-fnaf-yellow animate-pulse";
+
+                    window.renderTabContent();
+                }
+            };
 
             // 1. ANIMATRONICS EM TEMPO REAL
             onSnapshot(publicCol('animatronics'), (snapshot) => {
                 if (snapshot.empty) {
-                    // Seed inicial na nuvem
                     DEFAULT_ANIMATRONICS.forEach(anim => {
-                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'animatronics', anim.id), anim);
+                        setDoc(doc(db, 'animatronics', anim.id), anim).catch(() => {});
                     });
+                    window.state.animatronics = [...DEFAULT_ANIMATRONICS];
                 } else {
                     window.state.animatronics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    window.renderTabContent();
-                    showLivePulse();
                 }
-            }, (error) => console.error("Error on animatronics snapshot:", error));
+                window.renderTabContent();
+                showLivePulse();
+            }, (error) => handlePermissionError('animatronics', error));
 
             // 2. LORE EM TEMPO REAL
             onSnapshot(publicCol('lore'), (snapshot) => {
                 if (snapshot.empty) {
                     Object.keys(DEFAULT_LORE).forEach(gId => {
-                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'lore', gId), { content: DEFAULT_LORE[gId] });
+                        setDoc(doc(db, 'lore', gId), { content: DEFAULT_LORE[gId] }).catch(() => {});
                     });
+                    window.state.lore = { ...DEFAULT_LORE };
                 } else {
                     const loreObj = {};
                     snapshot.docs.forEach(doc => {
                         loreObj[doc.id] = doc.data().content;
                     });
                     window.state.lore = loreObj;
-                    if (window.state.currentTab === 'lore') window.renderLore();
-                    showLivePulse();
                 }
-            }, (error) => console.error("Error on lore snapshot:", error));
+                if (window.state.currentTab === 'lore') window.renderLore();
+                showLivePulse();
+            }, (error) => handlePermissionError('lore', error));
 
             // 3. TEORIAS EM TEMPO REAL
             onSnapshot(publicCol('theories'), (snapshot) => {
                 if (snapshot.empty) {
                     DEFAULT_THEORIES.forEach(th => {
-                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'theories', th.id), th);
+                        setDoc(doc(db, 'theories', th.id), th).catch(() => {});
                     });
+                    window.state.theories = [...DEFAULT_THEORIES];
                 } else {
                     window.state.theories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (window.state.currentTab === 'theories') window.renderTheories();
-                    showLivePulse();
                 }
-            }, (error) => console.error("Error on theories snapshot:", error));
+                if (window.state.currentTab === 'theories') window.renderTheories();
+                showLivePulse();
+            }, (error) => handlePermissionError('theories', error));
 
             // 4. USUÁRIOS REGISTRADOS EM TEMPO REAL
             onSnapshot(publicCol('users'), (snapshot) => {
                 window.state.usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (window.state.currentTab === 'admin') window.renderAdminPanel();
                 showLivePulse();
-            }, (error) => console.error("Error on users snapshot:", error));
+            }, (error) => handlePermissionError('users', error));
         }
 
         function showLivePulse() {
@@ -781,28 +805,48 @@
 
         // FUNÇÕES GLOBAIS EXPOSTAS AO HTML
         window.saveAnimatronicToCloud = async function(animData) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'animatronics', animData.id);
-            await setDoc(docRef, animData);
+            try {
+                const docRef = doc(db, 'animatronics', animData.id);
+                await setDoc(docRef, animData);
+            } catch (err) {
+                console.warn("Aviso ao salvar no Firebase:", err.message);
+            }
         };
 
         window.deleteAnimatronicFromCloud = async function(id) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'animatronics', id);
-            await deleteDoc(docRef);
+            try {
+                const docRef = doc(db, 'animatronics', id);
+                await deleteDoc(docRef);
+            } catch (err) {
+                console.warn("Aviso ao deletar no Firebase:", err.message);
+            }
         };
 
         window.saveLoreToCloud = async function(gameId, contentHtml) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'lore', gameId);
-            await setDoc(docRef, { content: contentHtml });
+            try {
+                const docRef = doc(db, 'lore', gameId);
+                await setDoc(docRef, { content: contentHtml });
+            } catch (err) {
+                console.warn("Erro ao salvar Lore:", err.message);
+            }
         };
 
         window.saveTheoryToCloud = async function(theoryObj) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'theories', theoryObj.id);
-            await setDoc(docRef, theoryObj);
+            try {
+                const docRef = doc(db, 'theories', theoryObj.id);
+                await setDoc(docRef, theoryObj);
+            } catch (err) {
+                console.warn("Erro ao salvar Teoria:", err.message);
+            }
         };
 
         window.saveUserToCloud = async function(userData) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userData.username);
-            await setDoc(docRef, userData);
+            try {
+                const docRef = doc(db, 'users', userData.username);
+                await setDoc(docRef, userData);
+            } catch (err) {
+                console.warn("Erro ao salvar Usuário:", err.message);
+            }
         };
 
         // Inicializar aplicação no Window Load
@@ -1114,13 +1158,6 @@
 
             const isAdmin = (password === 'fnaf67');
 
-            if (isAdmin) {
-                playRetroSound('admin');
-                showBanner("ACESSO ADMIN MESTRE CONCEDIDO VIA SENHA 'fnaf67'!");
-            } else {
-                playRetroSound('beep');
-            }
-
             const userObj = {
                 username: username,
                 role: isAdmin ? 'OPERADOR DE SISTEMA' : 'FUNCIONÁRIO',
@@ -1129,18 +1166,26 @@
                 isAdmin: isAdmin
             };
 
+            // 1. Define o usuário atual e salva localmente no navegador
             window.state.currentUser = userObj;
             localStorage.setItem('fnaf_current_user', JSON.stringify(userObj));
 
-            // Salvar no Firebase em Tempo Real
-            await window.saveUserToCloud(userObj);
-
+            // 2. Fecha o modal de login e atualiza os botões de cabeçalho
             closeModal('modalAuth');
             renderUserArea();
 
+            // 3. Se for Admin (fnaf67), abre o Painel Admin diretamente
             if (isAdmin) {
+                playRetroSound('admin');
+                showBanner("ACESSO ADMIN MESTRE CONCEDIDO VIA SENHA 'fnaf67'!");
                 window.switchTab('admin');
+            } else {
+                playRetroSound('beep');
+                showBanner("BEM-VINDO AO SISTEMA, " + username.toUpperCase() + "!");
             }
+
+            // 4. Transmite o usuário para o Firebase em segundo plano
+            window.saveUserToCloud(userObj);
         };
 
         window.logout = function() {
@@ -1305,18 +1350,33 @@
                 gameId, name, aggro, route, image, desc
             };
 
-            await window.saveAnimatronicToCloud(animData);
+            // 1. Atualiza a lista local instantaneamente
+            const existingIdx = window.state.animatronics.findIndex(a => a.id === animData.id);
+            if (existingIdx >= 0) {
+                window.state.animatronics[existingIdx] = animData;
+            } else {
+                window.state.animatronics.push(animData);
+            }
 
+            // 2. Renderiza as tabelas e galeria na hora
+            window.renderTabContent();
+
+            // 3. Fecha o modal de formulário
             closeModal('modalAnimatronicForm');
             playRetroSound('admin');
-            showBanner("Animatronic salvo na nuvem com sucesso!");
+            showBanner("Animatronic '" + name + "' registrado/atualizado com sucesso!");
+
+            // 4. Sincroniza no Firebase em segundo plano
+            window.saveAnimatronicToCloud(animData);
         };
 
         window.deleteAnimatronicAdmin = async function(id) {
             playRetroSound('beep');
-            if (confirm("Tem certeza que deseja apagar este animatronic para TODOS os visitantes?")) {
-                await window.deleteAnimatronicFromCloud(id);
-                showBanner("Animatronic removido da nuvem.");
+            if (confirm("Tem certeza que deseja apagar este animatronic?")) {
+                window.state.animatronics = window.state.animatronics.filter(a => a.id !== id);
+                window.renderTabContent();
+                showBanner("Animatronic removido com sucesso.");
+                window.deleteAnimatronicFromCloud(id);
             }
         };
 
