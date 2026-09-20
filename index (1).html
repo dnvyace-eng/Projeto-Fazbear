@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAZBEAR ENTERTAINMENT - ARCHIVE OPERATING SYSTEM v3.5 (LIVE REALTIME)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (VT323, Share Tech Mono, Press Start 2P) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fnaf: {
+                            dark: '#07090e',
+                            panel: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            green: '#00ff41',
+                            red: '#ff003c',
+                            yellow: '#ffe600',
+                            purple: '#a371f7',
+                            cyan: '#00f0ff'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                        crt: ['"VT323"', 'monospace'],
+                        arcade: ['"Press Start 2P"', 'cursive']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050508;
+            color: #00ff41;
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
+        }
+
+        /* Efeito de Tubo CRT e Scanlines */
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Estática de Câmera de Segurança */
+        .camera-static {
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)" opacity="0.15"/></svg>');
+        }
+
+        /* Flicker de Tela Retrô */
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            52% { opacity: 0.92; }
+            54% { opacity: 1; }
+            80% { opacity: 0.96; }
+            90% { opacity: 0.99; }
+            100% { opacity: 0.97; }
+        }
+
+        .crt-flicker {
+            animation: flicker 0.15s infinite;
+        }
+
+        /* Custom Scrollbar estilo DOS */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #07090e;
+            border: 1px solid #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 0px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ffe600;
+        }
+
+        .glow-green {
+            text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+        }
+        .glow-red {
+            text-shadow: 0 0 8px rgba(255, 0, 60, 0.6);
+        }
+        .glow-yellow {
+            text-shadow: 0 0 8px rgba(255, 230, 0, 0.6);
+        }
+
+        /* Borda Retrô Interativa */
+        .fnaf-btn {
+            position: relative;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+        .fnaf-btn:hover {
+            box-shadow: 0 0 12px currentColor;
+            transform: translateY(-1px);
+        }
+        .fnaf-btn:active {
+            transform: translateY(1px);
+        }
+
+        .clip-corner {
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-fnaf-green selection:text-black">
+
+    <!-- TELA DE INTRODUÇÃO PROJECT FNAF -->
+    <div id="introScreen" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center transition-opacity duration-1000">
+        <h1 class="text-4xl md:text-6xl font-crt text-fnaf-green glow-green animate-pulse tracking-widest">PROJECT FNAF</h1>
+        <p class="text-sm text-fnaf-green mt-4 font-mono">INICIALIZANDO SISTEMA FAZBEAR_OS...</p>
+    </div>
+
+    <!-- Efeito Visual CRT Global -->
+    <div id="crtOverlay" class="fixed inset-0 crt-overlay crt-flicker z-50 pointer-events-none"></div>
+
+    <!-- Header Principal estilo OS -->
+    <header class="bg-fnaf-dark border-b-2 border-fnaf-border p-3 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            
+            <!-- Logo & Status do Sistema com Indicador de Conexão Live -->
+            <div class="flex items-center gap-3">
+                <div class="relative flex items-center justify-center w-10 h-10 bg-black border border-fnaf-green text-fnaf-green">
+                    <i class="fa-solid fa-cloud text-xl animate-pulse"></i>
+                    <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-fnaf-green opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-fnaf-green"></span>
+                    </span>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold font-crt tracking-wider glow-green flex items-center gap-2">
+                        FAZBEAR_OS <span class="text-xs px-2 py-0.5 border border-fnaf-green bg-fnaf-green/10">v3.5 LIVE</span>
+                    </h1>
+                    <p class="text-xs text-gray-400 font-mono flex items-center gap-1.5">
+                        <span id="syncStatus" class="inline-block w-2 h-2 rounded-full bg-fnaf-green animate-pulse"></span>
+                        <span id="syncStatusText">REALTIME SYNC ONLINE</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Controles Globais e Status do Usuário -->
+            <div class="flex items-center gap-2 md:gap-4 flex-wrap text-sm">
+                
+                <!-- Relógio/Gravação REC -->
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-black/60 border border-fnaf-red text-fnaf-red text-xs">
+                    <span class="w-2 h-2 rounded-full bg-fnaf-red animate-ping"></span>
+                    <span class="font-bold tracking-widest">LIVE</span>
+                    <span id="liveClock" class="font-mono text-gray-300">00:00:00 AM</span>
+                </div>
+
+                <!-- Botão Toggle CRT -->
+                <button id="toggleCrtBtn" onclick="toggleCRT()" class="fnaf-btn px-2.5 py-1 text-xs border border-gray-600 hover:border-fnaf-green text-gray-300 hover:text-fnaf-green bg-black/50">
+                    <i class="fa-solid fa-tv mr-1"></i> CRT: <span id="crtStatus">ON</span>
+                </button>
+
+                <!-- Botão Toggle Áudio -->
+                <button id="toggleAudioBtn" onclick="toggleAudio()" class="fnaf-btn px-2.5 py-1 text-xs border border-gray-600 hover:border-fnaf-green text-gray-300 hover:text-fnaf-green bg-black/50">
+                    <i id="audioIcon" class="fa-solid fa-volume-high mr-1"></i> <span id="lblSound">SOM</span>
+                </button>
+
+                <!-- Botão Idioma -->
+                <button id="toggleLangBtn" onclick="toggleLanguage()" class="fnaf-btn px-2.5 py-1 text-xs border border-gray-600 hover:border-fnaf-green text-gray-300 hover:text-fnaf-green bg-black/50">
+                    <i class="fa-solid fa-globe mr-1"></i> <span id="langStatus">PT-BR</span>
+                </button>
+
+                <!-- Área de Perfil / Login / Admin Button -->
+                <div id="userArea" class="flex items-center gap-2">
+                    <!-- Dinamicamente preenchido -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Seletor de Jogos FNAF (Tabs) -->
+    <nav class="bg-black/90 border-b border-fnaf-border py-2 px-4 overflow-x-auto shadow-inner">
+        <div class="max-w-7xl mx-auto flex items-center space-x-2 min-w-max" id="gameNavContainer">
+            <!-- Botões dos Jogos -->
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6 flex-1 w-full">
+        
+        <!-- Alertas / Notificações do Sistema -->
+        <div id="systemBanner" class="hidden mb-6 p-3 bg-fnaf-red/10 border-l-4 border-fnaf-red text-fnaf-red text-sm flex justify-between items-center clip-corner">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-bell animate-bounce"></i>
+                <span id="systemBannerMsg">Aviso do Sistema Fazbear</span>
+            </div>
+            <button onclick="hideSystemBanner()" class="text-xs hover:underline uppercase">[Fechar]</button>
+        </div>
+
+        <!-- Cabeçalho do Jogo Selecionado -->
+        <div class="mb-6 flex flex-col md:flex-row justify-between md:items-end gap-4 border-b border-fnaf-border/60 pb-4">
+            <div>
+                <span class="text-xs text-fnaf-yellow font-bold uppercase tracking-widest" id="currentGameSub">FRANQUIA PRINCIPAL</span>
+                <h2 class="text-3xl md:text-4xl font-crt font-bold glow-green" id="currentGameTitle">Five Nights at Freddy's 1</h2>
+                <p class="text-xs text-gray-400 mt-1 max-w-2xl" id="currentGameDesc">Sincronizando com nuvem de alta velocidade...</p>
+            </div>
+
+            <!-- Abas Internas -->
+            <div class="flex bg-fnaf-panel p-1 rounded border border-fnaf-border text-xs sm:text-sm flex-wrap gap-1">
+                <button onclick="switchTab('animatronics')" id="tabBtn-animatronics" class="px-4 py-2 font-bold uppercase transition border-b-2 border-fnaf-green text-fnaf-green bg-fnaf-dark">
+                    <i class="fa-solid fa-robot mr-1"></i> Animatronics
+                </button>
+                <button onclick="switchTab('lore')" id="tabBtn-lore" class="px-4 py-2 font-bold uppercase transition text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-book-skull mr-1"></i> História & Lore
+                </button>
+                <button onclick="switchTab('theories')" id="tabBtn-theories" class="px-4 py-2 font-bold uppercase transition text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-brain mr-1"></i> Teorias
+                </button>
+            </div>
+        </div>
+
+        <!-- VISÃO 1: GALERIA DE ANIMATRONICS -->
+        <section id="viewAnimatronics" class="tab-content">
+            <div class="mb-6 flex flex-wrap gap-3 items-center justify-between bg-fnaf-panel p-3 border border-fnaf-border rounded">
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <i class="fa-solid fa-filter text-fnaf-green"></i>
+                    <span id="lblShowing">Exibindo: <strong id="animatronicCount" class="text-fnaf-green">0</strong> Entidades (Live)</span>
+                </div>
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="searchInput" oninput="renderAnimatronics()" placeholder="Buscar animatronic..." 
+                        class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs px-3 py-2 pl-8 focus:outline-none focus:border-fnaf-green">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-gray-500"></i>
+                </div>
+            </div>
+
+            <div id="animatronicsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Cards renderizados dinamicamente -->
+            </div>
+        </section>
+
+        <!-- VISÃO 2: HISTÓRIA & LORE -->
+        <section id="viewLore" class="tab-content hidden">
+            <div class="bg-fnaf-panel border border-fnaf-border p-6 rounded clip-corner relative camera-static">
+                <div class="border-b border-fnaf-border pb-3 mb-4 flex justify-between items-center flex-wrap gap-2">
+                    <h3 class="text-xl font-crt font-bold text-fnaf-yellow flex items-center gap-2">
+                        <i class="fa-solid fa-file-lines"></i> RELATÓRIO DE EVENTOS CONCERNENTES DA FAZBEAR ENT.
+                    </h3>
+                    <span class="text-xs bg-fnaf-yellow/10 text-fnaf-yellow px-2 py-1 border border-fnaf-yellow/30">BANCO GLOBAL EM TEMPO REAL</span>
+                </div>
+                <div id="loreContent" class="space-y-4 text-gray-300 text-sm leading-relaxed font-mono">
+                    <!-- Lore via Firebase -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VISÃO 3: TEORIAS -->
+        <section id="viewTheories" class="tab-content hidden">
+            <div class="mb-4 flex justify-between items-center">
+                <h3 class="text-lg font-crt font-bold text-fnaf-cyan">TEORIAS E HIPÓTESES DA COMUNIDADE</h3>
+                <button onclick="openNewTheoryModal()" class="fnaf-btn px-3 py-1.5 bg-fnaf-cyan/20 border border-fnaf-cyan text-fnaf-cyan font-bold text-xs hover:bg-fnaf-cyan hover:text-black">
+                    <i class="fa-solid fa-plus mr-1"></i> Nova Teoria
+                </button>
+            </div>
+            <div class="space-y-4" id="theoriesContainer">
+                <!-- Teorias via Firebase -->
+            </div>
+        </section>
+
+        <!-- VISÃO 4: PAINEL ADMIN (SENHA: fnaf67) -->
+        <section id="viewAdmin" class="tab-content hidden">
+            <div class="bg-fnaf-dark border-2 border-fnaf-red p-4 md:p-6 rounded shadow-2xl relative">
+                
+                <div class="flex flex-wrap justify-between items-center gap-4 border-b border-fnaf-red/40 pb-4 mb-6">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-fnaf-red/20 border border-fnaf-red text-fnaf-red text-xs font-bold mb-1">
+                            <i class="fa-solid fa-user-shield animate-pulse"></i> OPERADOR DO SISTEMA - NÍVEL 5 (ADMIN)
+                        </div>
+                        <h3 class="text-2xl font-crt font-bold text-white glow-red">TERMINAL DE CONTROLE CENTRAL FAZBEAR</h3>
+                        <p class="text-xs text-gray-400">Sincronizado via Firebase Firestore Mestre</p>
+                    </div>
+
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="openNewGameModal()" class="fnaf-btn px-3 py-2 bg-fnaf-purple text-white font-bold text-xs border border-fnaf-purple hover:bg-black hover:text-fnaf-purple">
+                            <i class="fa-solid fa-gamepad mr-1"></i> + Novo Jogo
+                        </button>
+                        <button onclick="openNewAnimatronicModal()" class="fnaf-btn px-3 py-2 bg-fnaf-green text-black font-bold text-xs border border-fnaf-green hover:bg-black hover:text-fnaf-green">
+                            <i class="fa-solid fa-plus mr-1"></i> + Animatronic
+                        </button>
+                        <button onclick="openEditLoreModal()" class="fnaf-btn px-3 py-2 bg-fnaf-yellow text-black font-bold text-xs border border-fnaf-yellow hover:bg-black hover:text-fnaf-yellow">
+                            <i class="fa-solid fa-pen mr-1"></i> Editar Lore
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-black/60 border border-fnaf-border p-4">
+                        <h4 class="text-sm font-bold text-fnaf-green mb-3 flex items-center gap-2 border-b border-fnaf-border pb-2">
+                            <i class="fa-solid fa-list-check"></i> GERENCIAR REGISTROS DE ANIMATRONICS EM NUVEM
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-fnaf-panel text-gray-400 border-b border-fnaf-border">
+                                        <th class="p-2">Nome</th>
+                                        <th class="p-2">Jogo</th>
+                                        <th class="p-2">Agressividade</th>
+                                        <th class="p-2 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminAnimatronicsTable" class="divide-y divide-fnaf-border/40">
+                                    <!-- Preenchido via Realtime -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/60 border border-fnaf-border p-4">
+                        <h4 class="text-sm font-bold text-fnaf-cyan mb-3 flex items-center gap-2 border-b border-fnaf-border pb-2">
+                            <i class="fa-solid fa-users"></i> USUÁRIOS NO BANCO DE DADOS
+                        </h4>
+                        <div id="adminUserList" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                            <!-- Preenchido via Realtime -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAIS DO SISTEMA -->
+    
+    <!-- MODAL: DETALHES DO ANIMATRONIC -->
+    <div id="modalDetail" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-fnaf-dark border-2 border-fnaf-green w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded clip-corner relative camera-static">
+            <button onclick="closeModal('modalDetail')" class="absolute top-3 right-3 text-fnaf-green hover:text-white text-xl font-bold">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="modalDetailContent"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: LOGIN / REGISTRO -->
+    <div id="modalAuth" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-fnaf-dark border-2 border-fnaf-green w-full max-w-md p-6 rounded shadow-2xl relative clip-corner">
+            <button onclick="closeModal('modalAuth')" class="absolute top-3 right-3 text-gray-500 hover:text-fnaf-green">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <i class="fa-solid fa-key text-3xl text-fnaf-green mb-2 animate-pulse"></i>
+                <h3 class="text-2xl font-crt font-bold text-fnaf-green glow-green" id="authModalTitle">AUTENTICAÇÃO FAZBEAR</h3>
+                <p class="text-xs text-gray-400">Insira suas credenciais para acessar a nuvem</p>
+            </div>
+
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">NOME DE USUÁRIO</label>
+                    <input type="text" id="authUsername" required placeholder="Ex: SecurityGuard_93" 
+                        class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2.5 focus:border-fnaf-green focus:outline-none">
+                </div>
+
+                <div id="registerOnlyFields" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">TÍTULO / CARGO CUSTOMIZADO</label>
+                        <input type="text" id="authTitle" placeholder="Ex: Guarda Noturno / Técnico de Bordo" 
+                            class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2.5 focus:border-fnaf-green focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">URL DA IMAGEM DE PERFIL / AVATAR</label>
+                        <input type="url" id="authAvatar" placeholder="https://..." 
+                            class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2.5 focus:border-fnaf-green focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SENHA DA CONTA</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" 
+                        class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2.5 focus:border-fnaf-green focus:outline-none">
+                    <span class="text-[10px] text-fnaf-yellow mt-1 block">Dica: Digite <code class="bg-black px-1 border border-fnaf-yellow">fnaf67</code> para obter acesso MESTRE / ADMIN.</span>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-fnaf-green text-black font-bold font-crt text-lg uppercase border border-fnaf-green hover:bg-black hover:text-fnaf-green transition fnaf-btn">
+                    <span id="authSubmitBtnText">ENTRAR NO SISTEMA</span>
+                </button>
+            </form>
+
+            <div class="mt-4 text-center text-xs text-gray-400">
+                <span id="authToggleText">Não tem um passe de acesso?</span>
+                <button type="button" onclick="toggleAuthMode()" class="text-fnaf-green font-bold ml-1 hover:underline" id="authToggleBtn">
+                    Criar Conta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PERFIL DE USUÁRIO -->
+    <div id="modalProfile" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-fnaf-dark border-2 border-fnaf-purple w-full max-w-md p-6 rounded clip-corner relative">
+            <button onclick="closeModal('modalProfile')" class="absolute top-3 right-3 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <h3 class="text-xl font-crt font-bold text-fnaf-purple mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-id-card"></i> CRACHÁ DE FUNCIONÁRIO
+            </h3>
+
+            <form id="profileForm" onsubmit="saveProfileChanges(event)" class="space-y-4">
+                <div class="flex items-center gap-4 bg-black/60 p-3 border border-fnaf-border">
+                    <img id="profilePreviewImg" src="" class="w-16 h-16 object-cover border border-fnaf-purple bg-black" alt="Avatar">
+                    <div>
+                        <h4 id="profileDisplayUsername" class="font-bold text-white text-base">Username</h4>
+                        <span id="profileDisplayRole" class="text-xs px-2 py-0.5 bg-fnaf-purple/20 text-fnaf-purple border border-fnaf-purple/40">Guarda</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">ALTERAR TÍTULO / CARGO</label>
+                    <input type="text" id="editUserTitle" class="w-full bg-black border border-fnaf-border text-fnaf-purple text-xs p-2 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">URL DA IMAGEM DE PERFIL</label>
+                    <input type="url" id="editUserAvatar" oninput="document.getElementById('profilePreviewImg').src=this.value" class="w-full bg-black border border-fnaf-border text-fnaf-purple text-xs p-2 focus:outline-none">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-2 bg-fnaf-purple text-white font-bold text-xs uppercase border border-fnaf-purple hover:bg-black hover:text-fnaf-purple">
+                        Salvar em Nuvem
+                    </button>
+                    <button type="button" onclick="logout()" class="px-4 py-2 bg-fnaf-red/20 text-fnaf-red font-bold text-xs uppercase border border-fnaf-red hover:bg-fnaf-red hover:text-black">
+                        Sair
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CRIAR TEORIA -->
+    <div id="modalTheoryForm" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-fnaf-dark border-2 border-fnaf-cyan w-full max-w-md p-6 rounded clip-corner relative">
+            <button onclick="closeModal('modalTheoryForm')" class="absolute top-3 right-3 text-gray-400 hover:text-fnaf-cyan">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-crt font-bold text-fnaf-cyan mb-4">PUBLICAR NOVA TEORIA EM TEMPO REAL</h3>
+
+            <form onsubmit="handleSaveTheory(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">TÍTULO DA TEORIA</label>
+                    <input type="text" id="theoryTitle" required class="w-full bg-black border border-fnaf-border text-fnaf-cyan text-xs p-2 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">DESCRIÇÃO E HIPÓTESE DETALHADA</label>
+                    <textarea id="theoryText" rows="4" required class="w-full bg-black border border-fnaf-border text-fnaf-cyan text-xs p-2 focus:outline-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalTheoryForm')" class="px-4 py-2 border border-gray-600 text-gray-400 text-xs uppercase">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-fnaf-cyan text-black font-bold text-xs uppercase hover:bg-black hover:text-fnaf-cyan border border-fnaf-cyan">Publicar para Todos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADMIN: NOVO / EDITAR ANIMATRONIC -->
+    <div id="modalAnimatronicForm" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-fnaf-dark border-2 border-fnaf-green w-full max-w-2xl p-6 rounded clip-corner relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('modalAnimatronicForm')" class="absolute top-3 right-3 text-gray-400 hover:text-fnaf-green">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-crt font-bold text-fnaf-green mb-4" id="animFormModalTitle">ADICIONAR ANIMATRONIC NO BANCO DE DADOS</h3>
+
+            <form id="animatronicEditorForm" onsubmit="handleSaveAnimatronic(event)" class="space-y-4">
+                <input type="hidden" id="editAnimId">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">NOME DO ANIMATRONIC</label>
+                        <input type="text" id="formAnimName" required class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">JOGO DE ORIGEM</label>
+                        <select id="formAnimGame" required class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- NOVO SISTEMA DE AGRESSIVIDADE -->
+                <div class="bg-black/50 border border-fnaf-border p-3 space-y-3">
+                    <div>
+                        <label class="block text-xs text-fnaf-yellow mb-1 font-bold">TIPO DE AGRESSIVIDADE</label>
+                        <select id="formAnimAggroType" onchange="toggleAggroInputs()" class="w-full bg-black border border-fnaf-border text-fnaf-yellow text-xs p-2 focus:outline-none">
+                            <option value="single">Nível Único (Texto Geral)</option>
+                            <option value="multi">Múltiplas Noites (Dinâmico)</option>
+                        </select>
+                    </div>
+
+                    <div id="aggroSingleContainer">
+                        <label class="block text-xs text-gray-400 mb-1" id="lblFormAggro">NÍVEL GERAL / TEXTO</label>
+                        <input type="text" id="formAnimAggro" placeholder="Ex: 20, Alta, Crescente" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
+                    </div>
+
+                    <div id="aggroMultiContainer" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Noite 1</label>
+                            <input type="text" id="aggroN1" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-1 focus:outline-none" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Noite 2</label>
+                            <input type="text" id="aggroN2" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-1 focus:outline-none" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Noite 3</label>
+                            <input type="text" id="aggroN3" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-1 focus:outline-none" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Noite 4</label>
+                            <input type="text" id="aggroN4" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-1 focus:outline-none" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Noite 5</label>
+                            <input type="text" id="aggroN5" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-1 focus:outline-none" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Noite 6</label>
+                            <input type="text" id="aggroN6" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-1 focus:outline-none" placeholder="0">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] text-gray-400">Custom Night</label>
+                            <input type="text" id="aggroNC" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-1 focus:outline-none" placeholder="20">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1" id="lblFormRoute">ROTA / LOCALIZAÇÃO INICIAL</label>
+                    <input type="text" id="formAnimRoute" required placeholder="Ex: CAM 01A -> Corredor Oeste" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
+                </div>
+
+                <!-- NOVA CATEGORIA: APARIÇÕES -->
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">APARIÇÕES REGISTRADAS (SELECIONE OS JOGOS)</label>
+                    <div id="formAnimAppearances" class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-black border border-fnaf-border p-3 max-h-32 overflow-y-auto">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">URL DA IMAGEM PRINCIPAL</label>
+                        <input type="url" id="formAnimImage" required placeholder="https://..." class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">IMAGEM SECUNDÁRIA (OPCIONAL)</label>
+                        <input type="url" id="formAnimImage2" placeholder="https://..." class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">DESCRIÇÃO E COMPORTAMENTO</label>
+                    <textarea id="formAnimDesc" rows="3" required class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modalAnimatronicForm')" class="px-4 py-2 border border-gray-600 text-gray-400 text-xs uppercase">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-fnaf-green text-black font-bold text-xs uppercase hover:bg-black hover:text-fnaf-green border border-fnaf-green">Salvar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADMIN: NOVO JOGO -->
+    <div id="modalGameForm" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-fnaf-dark border-2 border-fnaf-purple w-full max-w-md p-6 rounded clip-corner relative">
+            <button onclick="closeModal('modalGameForm')" class="absolute top-3 right-3 text-gray-400 hover:text-fnaf-purple">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-crt font-bold text-fnaf-purple mb-4">ADICIONAR NOVO TÍTULO FNAF</h3>
+
+            <form onsubmit="handleSaveGame(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">ID DO JOGO (Ex: fnaf5, fnaf_hw)</label>
+                    <input type="text" id="formGameId" required class="w-full bg-black border border-fnaf-border text-fnaf-purple text-xs p-2 focus:outline-none" pattern="[a-zA-Z0-9_]+" title="Apenas letras minúsculas, números e sublinhados">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">TÍTULO PRINCIPAL</label>
+                    <input type="text" id="formGameTitle" required placeholder="Ex: Five Nights at Freddy's: Help Wanted" class="w-full bg-black border border-fnaf-border text-fnaf-purple text-xs p-2 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SUBTÍTULO / DATA (Opcional)</label>
+                    <input type="text" id="formGameSub" placeholder="Ex: A Experiência Virtual" class="w-full bg-black border border-fnaf-border text-fnaf-purple text-xs p-2 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">BREVE DESCRIÇÃO</label>
+                    <textarea id="formGameDesc" rows="2" class="w-full bg-black border border-fnaf-border text-fnaf-purple text-xs p-2 focus:outline-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modalGameForm')" class="px-4 py-2 border border-gray-600 text-gray-400 text-xs uppercase">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-fnaf-purple text-white font-bold text-xs uppercase hover:bg-black hover:text-fnaf-purple border border-fnaf-purple">Registrar Jogo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="bg-fnaf-dark border-t border-fnaf-border py-4 px-6 mt-10">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-2">
+            <div>
+                <span>FAZBEAR ENTERTAINMENT © INC. ALL RIGHTS RESERVED.</span>
+                <span class="mx-2">|</span>
+                <span class="text-fnaf-green">FIREBASE REALTIME DATABASE SYNCED</span>
+            </div>
+            <div>
+                <span>"NOT RESPONSIBLE FOR DAMAGE TO PROPERTY OR PERSON."</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPT FIREBASE EM MÓDULO JS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // CONFIGURAÇÃO OFICIAL FORNECIDA PELO USUÁRIO
+        const firebaseConfig = {
+            apiKey: "AIzaSyCIMeI15Ta-_mEfAHp4dwIejgx7x5t1lbA",
+            authDomain: "site-fnaf-fazbear.firebaseapp.com",
+            projectId: "site-fnaf-fazbear",
+            storageBucket: "site-fnaf-fazbear.firebasestorage.app",
+            messagingSenderId: "203005114626",
+            appId: "1:203005114626:web:1f84024724295b54d5aa1b",
+            measurementId: "G-LT4DXL9B8H"
+        };
+
+        // Inicializar App Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // appId para regra de paths no Firestore
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'site-fnaf-fazbear';
+
+        // Helpers de Path Firestore em conformidade com as Regras de Artefatos
+        const getPublicCollection = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
+        const getPublicDoc = (colName, docId) => doc(db, 'artifacts', appId, 'public', 'data', colName, docId);
+
+        // BASE DE DADOS INICIAL DA FRANQUIA
+        const DEFAULT_GAMES = [
+            { id: 'fnaf1', title: 'Five Nights at Freddy\'s 1', sub: '1993 - Freddy Fazbear\'s Pizza', desc: 'A clássica pizzaria onde o terror começou. Gerencie energia, portas e luzes de vigilância.' },
+            { id: 'fnaf2', title: 'Five Nights at Freddy\'s 2', sub: '1987 - Grand Re-Opening', desc: 'Sem portas para te proteger. Use a máscara de Freddy e a lanterna para sobreviver aos Toy Animatronics.' },
+            { id: 'fnaf3', title: 'Five Nights at Freddy\'s 3', sub: '30 anos depois - Fazbear\'s Fright', desc: 'Uma atração de horror baseada nas lendas urbanas. Um único animatronic real espreita nos dutos.' },
+            { id: 'fnaf4', title: 'Five Nights at Freddy\'s 4', sub: 'The Final Chapter - O Quarto', desc: 'Terror psicológico puro. Use a audição para detectar a respiração dos Nightmares nas portas.' },
+            { id: 'fnaf_sl', title: 'Sister Location', sub: 'Circus Baby\'s Entertainment & Rental', desc: 'Abaixo da superfície. Interaja diretamente com manutenção e IA altamente perigosa.' },
+            { id: 'fnaf_ps', title: 'Freddy Fazbear\'s Pizzeria Simulator', sub: 'FNAF 6 - Fazbear Entertainment', desc: 'Projete sua própria pizzaria de dia, faça o resgate (salvage) de animatronics à noite.' },
+            { id: 'ucn', title: 'Ultimate Custom Night', sub: 'O Purgatório', desc: '50 animatronics selecionáveis. Configure o nível de IA de 0 a 20 e enfrente o caos definitivo.' },
+            { id: 'sb', title: 'Security Breach', sub: 'Freddy Fazbear\'s Mega Pizzaplex', desc: 'Navegue livremente pelo gigantesco shopping de entretenimento ao lado de Glamrock Freddy.' }
+        ];
+
+        const DEFAULT_ANIMATRONICS = [
+            {
+                id: 'freddy_fnaf1',
+                gameId: 'fnaf1',
+                name: 'Freddy Fazbear',
+                aggro: '15',
+                route: 'Show Stage -> Dining Area -> Restrooms -> Kitchen -> East Hall',
+                image: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=500&auto=format&fit=crop&q=60',
+                desc: 'O líder do grupo animatrônico. Ele se move nas sombras nas noites mais avançadas.',
+                appearances: ['fnaf1', 'fnaf2', 'fnaf3', 'ucn']
+            },
+            {
+                id: 'bonnie_fnaf1',
+                gameId: 'fnaf1',
+                name: 'Bonnie the Bunny',
+                aggro: '18',
+                route: 'Show Stage -> Dining Area -> Backstage -> West Hall -> Supply Closet',
+                image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500&auto=format&fit=crop&q=60',
+                desc: 'O coelho azul altamente ativo que ataca pelo lado esquerdo.',
+                appearances: ['fnaf1', 'fnaf3', 'ucn']
+            },
+            {
+                id: 'chica_fnaf1',
+                gameId: 'fnaf1',
+                name: 'Chica the Chicken',
+                aggro: '16',
+                route: 'Show Stage -> Dining Area -> Restrooms -> Kitchen -> East Hall',
+                image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop&q=60',
+                desc: 'Ataca pelo lado direito. Ela costuma passar bastante tempo na cozinha.',
+                appearances: ['fnaf1', 'fnaf3', 'ucn']
+            },
+            {
+                id: 'foxy_fnaf1',
+                gameId: 'fnaf1',
+                name: 'Foxy the Pirate Fox',
+                aggro: '19',
+                route: 'Pirate Cove -> West Hall -> Security Office',
+                image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=60',
+                desc: 'Permanece escondido na Pirate Cove. Correrá pelo corredor se não for vigiado.',
+                appearances: ['fnaf1', 'fnaf2', 'fnaf3', 'ucn']
+            },
+            {
+                id: 'withered_bonnie',
+                gameId: 'fnaf2',
+                name: 'Withered Bonnie',
+                aggro: '20',
+                route: 'Parts/Service -> Main Hall -> Hallway -> Office',
+                image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=60',
+                desc: 'Sem o rosto e sem o braço esquerdo, exige reflexos rápidos com a máscara de Freddy.',
+                appearances: ['fnaf2', 'ucn']
+            },
+            {
+                id: 'springtrap_fnaf3',
+                gameId: 'fnaf3',
+                name: 'Springtrap',
+                aggro: '20',
+                route: 'CAM 01 a CAM 10 & Dutos de Ventilação',
+                image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500&auto=format&fit=crop&q=60',
+                desc: 'Contém o corpo em decomposição de William Afton. Atraído por áudios de voz.',
+                appearances: ['fnaf3', 'fnaf_ps', 'ucn']
+            }
+        ];
+
+        const DEFAULT_LORE = {
+            fnaf1: `<p><strong>O Incidente dos Anos 90:</strong> A pizzaria Freddy Fazbear's Pizza enfrenta sérios problemas devido a odores estranhos emanando dos animatronics.</p>`,
+            fnaf2: `<p><strong>A Grande Reabertura (1987):</strong> Uma nova pizzaria traz os Toy Animatronics. O evento culmina na famigerada Mordida de 87.</p>`,
+            fnaf3: `<p><strong>30 Anos Depois:</strong> A atração Fazbear's Fright desenterra o verdadeiro robô Springtrap.</p>`
+        };
+
+        const DEFAULT_THEORIES = [
+            { id: 'theory1', gameId: 'fnaf1', title: 'Almas das Crianças', text: 'Teoria de que as almas das 5 crianças possuem Freddy, Bonnie, Chica, Foxy e Golden Freddy.', author: 'Fazbear Admin' },
+            { id: 'theory2', gameId: 'fnaf2', title: 'A Mordida de 87', text: 'Mangle ou Withered Bonnie são os principais suspeitos devido ao formato da mandíbula.', author: 'NightGuard' }
+        ];
+
+        // Estado do Aplicativo
+        window.state = {
+            currentGameId: 'fnaf1',
+            currentTab: 'animatronics',
+            currentUser: null,
+            usersList: [],
+            games: DEFAULT_GAMES,
+            animatronics: [],
+            lore: {},
+            theories: [],
+            audioEnabled: true,
+            crtEnabled: true,
+            authIsRegister: false,
+            lang: 'pt'
+        };
+
+        // Sistema de Idiomas (i18n)
+        const i18n = {
+            'pt': {
+                'sound': 'SOM',
+                'tab_anims': '<i class="fa-solid fa-robot mr-1"></i> Animatronics',
+                'tab_lore': '<i class="fa-solid fa-book-skull mr-1"></i> História & Lore',
+                'tab_theories': '<i class="fa-solid fa-brain mr-1"></i> Teorias',
+                'search_ph': 'Buscar animatronic...',
+                'showing': 'Exibindo:',
+                'entities': 'Entidades (Live)',
+                'ai_level': 'Nível de Agressividade:',
+                'rec_route': 'Rota Recomendada:',
+                'appearances': 'Aparições:',
+                'behavior': 'RELATÓRIO DE COMPORTAMENTO:',
+                'specs': '<i class="fa-solid fa-microchip mr-1"></i> ESPECIFICAÇÕES',
+                'login_btn': '<i class="fa-solid fa-right-to-bracket mr-1"></i> ENTRAR / REGISTRAR',
+                'admin_btn': '<i class="fa-solid fa-user-shield mr-1"></i> ADMIN',
+                'form_aggro_lbl': 'NÍVEL DE AGRESSIVIDADE (TEXTO)',
+                'form_route_lbl': 'ROTA / LOCALIZAÇÃO INICIAL',
+                'no_anims': 'NENHUM ANIMATRONIC ENCONTRADO EM TEMPO REAL PARA ESTE TÍTULO.',
+                'seen_in': 'VISTO EM:',
+                'admin_title': 'TERMINAL DE CONTROLE CENTRAL FAZBEAR'
+            },
+            'en': {
+                'sound': 'SOUND',
+                'tab_anims': '<i class="fa-solid fa-robot mr-1"></i> Animatronics',
+                'tab_lore': '<i class="fa-solid fa-book-skull mr-1"></i> Story & Lore',
+                'tab_theories': '<i class="fa-solid fa-brain mr-1"></i> Theories',
+                'search_ph': 'Search animatronic...',
+                'showing': 'Showing:',
+                'entities': 'Entities (Live)',
+                'ai_level': 'Aggressiveness Level:',
+                'rec_route': 'Recommended Route:',
+                'appearances': 'Appearances:',
+                'behavior': 'BEHAVIOR REPORT:',
+                'specs': '<i class="fa-solid fa-microchip mr-1"></i> SPECIFICATIONS',
+                'login_btn': '<i class="fa-solid fa-right-to-bracket mr-1"></i> LOGIN / REGISTER',
+                'admin_btn': '<i class="fa-solid fa-user-shield mr-1"></i> ADMIN',
+                'form_aggro_lbl': 'AGGRESSIVENESS LEVEL (TEXT)',
+                'form_route_lbl': 'ROUTE / STARTING LOCATION',
+                'no_anims': 'NO ANIMATRONIC FOUND IN REAL-TIME FOR THIS TITLE.',
+                'seen_in': 'SEEN IN:',
+                'admin_title': 'FAZBEAR CENTRAL CONTROL TERMINAL'
+            }
+        };
+
+        window.t = function(key) {
+            return i18n[window.state.lang][key] || key;
+        };
+
+        window.toggleLanguage = function() {
+            window.state.lang = window.state.lang === 'pt' ? 'en' : 'pt';
+            document.getElementById('langStatus').innerText = window.state.lang === 'pt' ? 'PT-BR' : 'EN-US';
+            playRetroSound('beep');
+            applyLanguageToUI();
+        };
+
+        window.applyLanguageToUI = function() {
+            if(document.getElementById('lblSound')) document.getElementById('lblSound').innerText = t('sound');
+            if(document.getElementById('tabBtn-animatronics')) document.getElementById('tabBtn-animatronics').innerHTML = t('tab_anims');
+            if(document.getElementById('tabBtn-lore')) document.getElementById('tabBtn-lore').innerHTML = t('tab_lore');
+            if(document.getElementById('tabBtn-theories')) document.getElementById('tabBtn-theories').innerHTML = t('tab_theories');
+            if(document.getElementById('searchInput')) document.getElementById('searchInput').placeholder = t('search_ph');
+            if(document.getElementById('lblFormAggro')) document.getElementById('lblFormAggro').innerText = t('form_aggro_lbl');
+            if(document.getElementById('lblFormRoute')) document.getElementById('lblFormRoute').innerText = t('form_route_lbl');
+            
+            renderTabContent();
+            renderUserArea();
+        };
+
+        // Web Audio Synth
+        let audioCtx = null;
+        window.playRetroSound = function(type) {
+            if (!window.state.audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'beep') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'click') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'admin') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch(e) {}
+        };
+
+        // Autenticar com o Firebase primeiro (FORMA CORRETA E OBRIGATÓRIA)
+        async function initAuthAndRealtime() {
+            try {
+                // 1. Tenta autenticar primeiro e ESPERA o resultado
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // 2. Só inicia a escuta em tempo real SE estiver autenticado
+                if (auth.currentUser) {
+                    setupRealtimeListeners();
+                }
+            } catch (e) {
+                console.warn("Erro crítico de Auth Firebase:", e.message);
+                showBanner("ERRO DE CONEXÃO FIREBASE: Autenticação falhou.");
+                enableLocalFallback();
+            }
+        }
+
+        // ===============================================
+        // FIREBASE REALTIME LISTENERS (Sincronização Automática)
+        // ===============================================
+        let isUsingFallback = false;
+        
+        function enableLocalFallback() {
+            if (!isUsingFallback) {
+                isUsingFallback = true;
+                // Recuperar dados persistidos no localStorage
+                const savedGames = localStorage.getItem('fnaf_local_games');
+                if (savedGames) window.state.games = JSON.parse(savedGames);
+                else if (window.state.games.length === 0) window.state.games = [...DEFAULT_GAMES];
+
+                const savedAnims = localStorage.getItem('fnaf_local_animatronics');
+                if (savedAnims) window.state.animatronics = JSON.parse(savedAnims);
+                else if (window.state.animatronics.length === 0) window.state.animatronics = [...DEFAULT_ANIMATRONICS];
+
+                const savedLore = localStorage.getItem('fnaf_local_lore');
+                if (savedLore) window.state.lore = JSON.parse(savedLore);
+                else if (Object.keys(window.state.lore).length === 0) window.state.lore = { ...DEFAULT_LORE };
+
+                const savedTheories = localStorage.getItem('fnaf_local_theories');
+                if (savedTheories) window.state.theories = JSON.parse(savedTheories);
+                else if (window.state.theories.length === 0) window.state.theories = [...DEFAULT_THEORIES];
+
+                const savedUsers = localStorage.getItem('fnaf_local_users');
+                if (savedUsers) window.state.usersList = JSON.parse(savedUsers);
+
+                const statusText = document.getElementById('syncStatusText');
+                if (statusText) statusText.innerText = "MODO LOCAL (FIREBASE DESCONECTADO)";
+
+                const statusDot = document.getElementById('syncStatus');
+                if (statusDot) statusDot.className = "inline-block w-2 h-2 rounded-full bg-fnaf-red animate-pulse";
+
+                window.renderTabContent();
+            }
+        }
+
+        function setupRealtimeListeners() {
+            if (!auth.currentUser) return;
+
+            const handlePermissionError = (colName, error) => {
+                console.error(`[Fazbear OS] ERRO DE PERMISSÃO no Firestore (${colName}):`, error.message);
+                showBanner("FIREBASE BLOQUEADO! Vá ao console do Firebase e mude as regras para 'allow read, write: if true;'");
+                enableLocalFallback();
+            };
+
+            // 0. JOGOS EM TEMPO REAL
+            onSnapshot(getPublicCollection('games'), (snapshot) => {
+                if (snapshot.empty) {
+                    DEFAULT_GAMES.forEach(game => {
+                        setDoc(getPublicDoc('games', game.id), game).catch(() => {});
+                    });
+                    if (window.state.games.length === 0) window.state.games = [...DEFAULT_GAMES];
+                } else {
+                    window.state.games = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Ordenar caso necessário, manter ordem de ID provisoriamente
+                    window.state.games.sort((a, b) => a.id.localeCompare(b.id)); 
+                }
+                localStorage.setItem('fnaf_local_games', JSON.stringify(window.state.games));
+                renderGameNav();
+                showLivePulse();
+            }, (error) => handlePermissionError('games', error));
+
+            // 1. ANIMATRONICS EM TEMPO REAL
+            onSnapshot(getPublicCollection('animatronics'), (snapshot) => {
+                if (snapshot.empty) {
+                    DEFAULT_ANIMATRONICS.forEach(anim => {
+                        setDoc(getPublicDoc('animatronics', anim.id), anim).catch(() => {});
+                    });
+                    if (window.state.animatronics.length === 0) window.state.animatronics = [...DEFAULT_ANIMATRONICS];
+                } else {
+                    window.state.animatronics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+                localStorage.setItem('fnaf_local_animatronics', JSON.stringify(window.state.animatronics));
+                window.renderTabContent();
+                showLivePulse();
+            }, (error) => handlePermissionError('animatronics', error));
+
+            // 2. LORE EM TEMPO REAL
+            onSnapshot(getPublicCollection('lore'), (snapshot) => {
+                if (snapshot.empty) {
+                    Object.keys(DEFAULT_LORE).forEach(gId => {
+                        setDoc(getPublicDoc('lore', gId), { content: DEFAULT_LORE[gId] }).catch(() => {});
+                    });
+                    if (Object.keys(window.state.lore).length === 0) window.state.lore = { ...DEFAULT_LORE };
+                } else {
+                    const loreObj = {};
+                    snapshot.docs.forEach(doc => {
+                        loreObj[doc.id] = doc.data().content;
+                    });
+                    window.state.lore = loreObj;
+                }
+                localStorage.setItem('fnaf_local_lore', JSON.stringify(window.state.lore));
+                if (window.state.currentTab === 'lore') window.renderLore();
+                showLivePulse();
+            }, (error) => handlePermissionError('lore', error));
+
+            // 3. TEORIAS EM TEMPO REAL
+            onSnapshot(getPublicCollection('theories'), (snapshot) => {
+                if (snapshot.empty) {
+                    DEFAULT_THEORIES.forEach(th => {
+                        setDoc(getPublicDoc('theories', th.id), th).catch(() => {});
+                    });
+                    if (window.state.theories.length === 0) window.state.theories = [...DEFAULT_THEORIES];
+                } else {
+                    window.state.theories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+                localStorage.setItem('fnaf_local_theories', JSON.stringify(window.state.theories));
+                if (window.state.currentTab === 'theories') window.renderTheories();
+                showLivePulse();
+            }, (error) => handlePermissionError('theories', error));
+
+            // 4. USUÁRIOS REGISTRADOS EM TEMPO REAL
+            onSnapshot(getPublicCollection('users'), (snapshot) => {
+                window.state.usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                localStorage.setItem('fnaf_local_users', JSON.stringify(window.state.usersList));
+                if (window.state.currentTab === 'admin') window.renderAdminPanel();
+                showLivePulse();
+            }, (error) => handlePermissionError('users', error));
+        }
+
+        function showLivePulse() {
+            const statusEl = document.getElementById('syncStatusText');
+            if (statusEl) {
+                statusEl.innerText = "ATUALIZADO AGORA!";
+                statusEl.classList.add('text-fnaf-yellow');
+                setTimeout(() => {
+                    statusEl.innerText = "REALTIME SYNC ONLINE";
+                    statusEl.classList.remove('text-fnaf-yellow');
+                }, 1500);
+            }
+        }
+
+        // FUNÇÕES GLOBAIS EXPOSTAS AO HTML
+        window.saveGameToCloud = async function(gameData) {
+            localStorage.setItem('fnaf_local_games', JSON.stringify(window.state.games));
+            try {
+                if (auth.currentUser) {
+                    const docRef = getPublicDoc('games', gameData.id);
+                    await setDoc(docRef, gameData);
+                }
+            } catch (err) {
+                console.warn("Aviso ao salvar Jogo no Firebase:", err.message);
+            }
+        };
+
+        window.saveAnimatronicToCloud = async function(animData) {
+            localStorage.setItem('fnaf_local_animatronics', JSON.stringify(window.state.animatronics));
+            try {
+                if (auth.currentUser) {
+                    const docRef = getPublicDoc('animatronics', animData.id);
+                    await setDoc(docRef, animData);
+                }
+            } catch (err) {
+                console.warn("Aviso ao salvar no Firebase:", err.message);
+            }
+        };
+
+        window.deleteAnimatronicFromCloud = async function(id) {
+            localStorage.setItem('fnaf_local_animatronics', JSON.stringify(window.state.animatronics));
+            try {
+                if (auth.currentUser) {
+                    const docRef = getPublicDoc('animatronics', id);
+                    await deleteDoc(docRef);
+                }
+            } catch (err) {
+                console.warn("Aviso ao deletar no Firebase:", err.message);
+            }
+        };
+
+        window.saveLoreToCloud = async function(gameId, contentHtml) {
+            window.state.lore[gameId] = contentHtml;
+            localStorage.setItem('fnaf_local_lore', JSON.stringify(window.state.lore));
+            try {
+                if (auth.currentUser) {
+                    const docRef = getPublicDoc('lore', gameId);
+                    await setDoc(docRef, { content: contentHtml });
+                }
+            } catch (err) {
+                console.warn("Erro ao salvar Lore:", err.message);
+            }
+        };
+
+        window.saveTheoryToCloud = async function(theoryObj) {
+            localStorage.setItem('fnaf_local_theories', JSON.stringify(window.state.theories));
+            try {
+                if (auth.currentUser) {
+                    const docRef = getPublicDoc('theories', theoryObj.id);
+                    await setDoc(docRef, theoryObj);
+                }
+            } catch (err) {
+                console.warn("Erro ao salvar Teoria:", err.message);
+            }
+        };
+
+        window.saveUserToCloud = async function(userData) {
+            const existingIdx = window.state.usersList.findIndex(u => u.username === userData.username);
+            if (existingIdx >= 0) window.state.usersList[existingIdx] = userData;
+            else window.state.usersList.push(userData);
+            localStorage.setItem('fnaf_local_users', JSON.stringify(window.state.usersList));
+
+            try {
+                if (auth.currentUser) {
+                    const docRef = getPublicDoc('users', userData.username);
+                    await setDoc(docRef, userData);
+                }
+            } catch (err) {
+                console.warn("Erro ao salvar Usuário:", err.message);
+            }
+        };
+
+        // Inicializar aplicação no Window Load
+        window.onload = function() {
+            // Lógica de Intro do Project FNAF
+            setTimeout(() => {
+                const intro = document.getElementById('introScreen');
+                if(intro) {
+                    intro.style.opacity = '0';
+                    setTimeout(() => intro.remove(), 1000); // Remove do DOM após 1s de transição
+                }
+            }, 2000);
+
+            startLiveClock();
+            renderGameNav();
+            
+            // Recarregar dados persistidos localmente
+            const savedGames = localStorage.getItem('fnaf_local_games');
+            if (savedGames) window.state.games = JSON.parse(savedGames);
+            else window.state.games = [...DEFAULT_GAMES];
+
+            const savedAnims = localStorage.getItem('fnaf_local_animatronics');
+            if (savedAnims) window.state.animatronics = JSON.parse(savedAnims);
+            else window.state.animatronics = [...DEFAULT_ANIMATRONICS];
+
+            const savedLore = localStorage.getItem('fnaf_local_lore');
+            if (savedLore) window.state.lore = JSON.parse(savedLore);
+            else window.state.lore = { ...DEFAULT_LORE };
+
+            const savedTheories = localStorage.getItem('fnaf_local_theories');
+            if (savedTheories) window.state.theories = JSON.parse(savedTheories);
+            else window.state.theories = [...DEFAULT_THEORIES];
+
+            const savedUsers = localStorage.getItem('fnaf_local_users');
+            if (savedUsers) window.state.usersList = JSON.parse(savedUsers);
+
+            const savedUser = localStorage.getItem('fnaf_current_user');
+            if (savedUser) window.state.currentUser = JSON.parse(savedUser);
+            
+            applyLanguageToUI();
+            renderUserArea();
+
+            selectGame('fnaf1');
+            initAuthAndRealtime();
+        };
+
+        // Funções de UI e Lógica
+        function startLiveClock() {
+            setInterval(() => {
+                const now = new Date();
+                const clockEl = document.getElementById('liveClock');
+                if (clockEl) clockEl.innerText = now.toLocaleTimeString();
+            }, 1000);
+        }
+
+        window.toggleCRT = function() {
+            window.state.crtEnabled = !window.state.crtEnabled;
+            const overlay = document.getElementById('crtOverlay');
+            const status = document.getElementById('crtStatus');
+            if (window.state.crtEnabled) {
+                overlay.classList.remove('hidden');
+                status.innerText = 'ON';
+            } else {
+                overlay.classList.add('hidden');
+                status.innerText = 'OFF';
+            }
+            playRetroSound('beep');
+        };
+
+        window.toggleAudio = function() {
+            window.state.audioEnabled = !window.state.audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            if (window.state.audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high mr-1';
+                playRetroSound('beep');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark mr-1';
+            }
+        };
+
+        function renderGameNav() {
+            const container = document.getElementById('gameNavContainer');
+            container.innerHTML = '';
+
+            window.state.games.forEach(game => {
+                const isSelected = game.id === window.state.currentGameId;
+                const btn = document.createElement('button');
+                btn.onclick = () => { playRetroSound('click'); selectGame(game.id); };
+                btn.className = `fnaf-btn px-3 py-1.5 text-xs font-mono font-bold whitespace-nowrap border transition ${
+                    isSelected 
+                    ? 'border-fnaf-green bg-fnaf-green/20 text-fnaf-green glow-green' 
+                    : 'border-fnaf-border text-gray-400 hover:text-white hover:border-gray-500 bg-fnaf-dark'
+                }`;
+                btn.innerText = game.id.toUpperCase();
+                container.appendChild(btn);
+            });
+        }
+
+        window.selectGame = function(gameId) {
+            window.state.currentGameId = gameId;
+            const game = window.state.games.find(g => g.id === gameId) || window.state.games[0];
+            
+            document.getElementById('currentGameTitle').innerText = game.title;
+            document.getElementById('currentGameSub').innerText = game.sub;
+            document.getElementById('currentGameDesc').innerText = game.desc;
+
+            renderGameNav();
+            renderTabContent();
+        };
+
+        window.switchTab = function(tabName) {
+            playRetroSound('click');
+            window.state.currentTab = tabName;
+
+            ['animatronics', 'lore', 'theories'].forEach(t => {
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (btn) {
+                    btn.className = (t === tabName)
+                        ? "px-4 py-2 font-bold uppercase transition border-b-2 border-fnaf-green text-fnaf-green bg-fnaf-dark"
+                        : "px-4 py-2 font-bold uppercase transition text-gray-400 hover:text-white";
+                }
+            });
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+            if (tabName === 'animatronics') document.getElementById('viewAnimatronics').classList.remove('hidden');
+            if (tabName === 'lore') document.getElementById('viewLore').classList.remove('hidden');
+            if (tabName === 'theories') document.getElementById('viewTheories').classList.remove('hidden');
+            if (tabName === 'admin') document.getElementById('viewAdmin').classList.remove('hidden');
+
+            renderTabContent();
+        };
+
+        window.renderTabContent = function() {
+            if (window.state.currentTab === 'animatronics') renderAnimatronics();
+            if (window.state.currentTab === 'lore') renderLore();
+            if (window.state.currentTab === 'theories') renderTheories();
+            if (window.state.currentTab === 'admin') renderAdminPanel();
+        };
+
+        window.renderAnimatronics = function() {
+            const grid = document.getElementById('animatronicsGrid');
+            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            grid.innerHTML = '';
+
+            const filtered = window.state.animatronics.filter(a => 
+                a.gameId === window.state.currentGameId && 
+                a.name.toLowerCase().includes(search)
+            );
+
+            const showingLbl = document.getElementById('lblShowing');
+            if(showingLbl) showingLbl.innerHTML = `${t('showing')} <strong id="animatronicCount" class="text-fnaf-green">${filtered.length}</strong> ${t('entities')}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-500 border border-dashed border-fnaf-border">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-2 text-fnaf-yellow"></i>
+                        <p class="font-mono text-sm">${t('no_anims')}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(anim => {
+                const card = document.createElement('div');
+                card.className = "bg-fnaf-panel border border-fnaf-border hover:border-fnaf-green transition p-3 flex flex-col justify-between group clip-corner relative camera-static";
+                
+                let aggroColor = "text-fnaf-green border-fnaf-green";
+                let aggroNum = parseInt(anim.aggro);
+                if (!isNaN(aggroNum)) {
+                    if (aggroNum > 10) aggroColor = "text-fnaf-yellow border-fnaf-yellow";
+                    if (aggroNum > 16) aggroColor = "text-fnaf-red border-fnaf-red";
+                } else if (anim.aggro && (anim.aggro.toLowerCase().includes('alt') || anim.aggro.toLowerCase().includes('high') || anim.aggro.toLowerCase().includes('extrem'))) {
+                    aggroColor = "text-fnaf-red border-fnaf-red";
+                }
+
+                const appsText = (anim.appearances || [anim.gameId]).map(gid => gid.toUpperCase()).join(', ');
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center text-[10px] text-gray-400 mb-2 font-mono">
+                            <span class="flex items-center gap-1"><i class="fa-solid fa-video text-fnaf-green animate-pulse"></i> CAM_ONLINE</span>
+                            <span class="border border-fnaf-border bg-black px-1 font-bold">STATUS: MONITORED</span>
+                        </div>
+
+                        <div class="relative overflow-hidden bg-black aspect-square border border-fnaf-border/60 mb-3 group-hover:border-fnaf-green">
+                            <img src="${anim.image}" alt="${anim.name}" class="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-105 transition duration-300"
+                                onerror="this.src='https://placehold.co/400x400/161b22/00ff41?text=NO+CAMERA+FEED'">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                        </div>
+
+                        <h4 class="font-crt font-bold text-lg text-white group-hover:text-fnaf-green transition">${anim.name}</h4>
+                        <p class="text-[9px] text-fnaf-cyan mt-1 truncate">${t('seen_in')} ${appsText}</p>
+                        <p class="text-[11px] text-gray-400 line-clamp-2 mt-1">${anim.desc}</p>
+                    </div>
+
+                    <button onclick="openAnimatronicDetail('${anim.id}')" class="mt-4 w-full py-1.5 bg-black border border-fnaf-border text-xs text-gray-300 hover:text-fnaf-green hover:border-fnaf-green transition fnaf-btn">
+                        ${t('specs')}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        window.openAnimatronicDetail = function(id) {
+            playRetroSound('beep');
+            const anim = window.state.animatronics.find(a => a.id === id);
+            if (!anim) return;
+
+            const appsList = (anim.appearances || [anim.gameId]).map(gid => {
+                const gObj = window.state.games.find(g => g.id === gid);
+                return gObj ? gObj.title : gid.toUpperCase();
+            }).join(' | ');
+
+            const isMultiAggro = anim.aggroType === 'multi' && anim.aggroMulti;
+            
+            let aggroHTML = '';
+            if (isMultiAggro) {
+                aggroHTML = `
+                    <div class="mt-2">
+                        <span class="text-[10px] text-fnaf-yellow mb-1 block">NÍVEIS DE I.A. REGISTRADOS POR NOITE:</span>
+                        <div class="grid grid-cols-4 sm:grid-cols-7 gap-1 text-center text-xs">
+                            <div class="bg-black border border-fnaf-border p-1"><span class="block text-[8px] text-gray-500">N1</span><span class="text-fnaf-green font-bold">${anim.aggroMulti.n1 || '-'}</span></div>
+                            <div class="bg-black border border-fnaf-border p-1"><span class="block text-[8px] text-gray-500">N2</span><span class="text-fnaf-green font-bold">${anim.aggroMulti.n2 || '-'}</span></div>
+                            <div class="bg-black border border-fnaf-border p-1"><span class="block text-[8px] text-gray-500">N3</span><span class="text-fnaf-yellow font-bold">${anim.aggroMulti.n3 || '-'}</span></div>
+                            <div class="bg-black border border-fnaf-border p-1"><span class="block text-[8px] text-gray-500">N4</span><span class="text-fnaf-yellow font-bold">${anim.aggroMulti.n4 || '-'}</span></div>
+                            <div class="bg-black border border-fnaf-border p-1"><span class="block text-[8px] text-gray-500">N5</span><span class="text-fnaf-red font-bold">${anim.aggroMulti.n5 || '-'}</span></div>
+                            <div class="bg-black border border-fnaf-border p-1"><span class="block text-[8px] text-gray-500">N6</span><span class="text-fnaf-red font-bold glow-red">${anim.aggroMulti.n6 || '-'}</span></div>
+                            <div class="bg-black border border-fnaf-border p-1"><span class="block text-[8px] text-gray-500">CUS</span><span class="text-fnaf-purple font-bold glow-purple">${anim.aggroMulti.nc || '-'}</span></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                aggroHTML = `<p class="mt-1"><span class="text-gray-400">Nível de I.A:</span> <strong class="text-fnaf-red px-2 py-0.5 bg-fnaf-red/10 border border-fnaf-red">${anim.aggro || 'Desconhecido'}</strong></p>`;
+            }
+
+            let imagesHTML = `
+                <div class="border-2 border-fnaf-border bg-black relative p-1">
+                    <div class="absolute inset-0 crt-overlay pointer-events-none z-10"></div>
+                    <img src="${anim.image}" class="w-full aspect-square md:aspect-auto md:h-64 object-cover opacity-90" onerror="this.src='https://placehold.co/400x400/161b22/00ff41?text=NO+IMAGE'">
+                    <span class="absolute bottom-2 left-2 bg-black/80 text-fnaf-green px-2 py-0.5 text-xs font-mono border border-fnaf-green z-20"><i class="fa-solid fa-video animate-pulse"></i> CAM_01</span>
+                </div>
+            `;
+
+            if (anim.image2) {
+                imagesHTML += `
+                <div class="border-2 border-gray-700 bg-black relative p-1 mt-3">
+                    <img src="${anim.image2}" class="w-full h-32 object-cover opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition duration-500" onerror="this.style.display='none'">
+                    <span class="absolute top-2 right-2 bg-black/80 text-gray-400 px-2 py-0.5 text-[9px] font-mono border border-gray-700 z-20">REF_SECUNDÁRIA</span>
+                </div>
+                `;
+            }
+
+            const modalContent = document.getElementById('modalDetailContent');
+            modalContent.innerHTML = `
+                <div class="flex items-center justify-between border-b-2 border-fnaf-green pb-2 mb-4">
+                    <h3 class="text-2xl md:text-3xl font-crt font-bold text-fnaf-green glow-green flex items-center gap-2">
+                        <i class="fa-solid fa-file-shield text-xl"></i> DOSSIÊ CLASSIFICADO
+                    </h3>
+                    <span class="text-xs bg-fnaf-green/20 text-fnaf-green px-2 py-1 border border-fnaf-green font-bold blink">TOP SECRET</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+                    <div class="md:col-span-2 space-y-4">
+                        ${imagesHTML}
+                    </div>
+                    <div class="md:col-span-3 space-y-4 font-mono">
+                        <div class="bg-fnaf-panel p-4 border border-fnaf-border relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-16 h-16 bg-fnaf-dark border-l border-b border-fnaf-border flex items-center justify-center opacity-50">
+                                <i class="fa-solid fa-fingerprint text-3xl text-fnaf-border"></i>
+                            </div>
+                            <h4 class="text-3xl font-bold text-white mb-1 drop-shadow-md">${anim.name}</h4>
+                            <span class="text-[10px] text-fnaf-cyan bg-fnaf-cyan/10 border border-fnaf-cyan px-2 py-0.5 tracking-widest">ORIGEM: ${window.state.games.find(g=>g.id===anim.gameId)?.title || anim.gameId.toUpperCase()}</span>
+                            
+                            <div class="mt-4 pt-4 border-t border-dashed border-gray-600">
+                                ${aggroHTML}
+                                <p class="mt-3"><span class="text-gray-400">Rota Inicial:</span> <span class="text-gray-200 block bg-black border border-fnaf-border p-1.5 mt-1 text-xs">${anim.route}</span></p>
+                                <p class="mt-3"><span class="text-gray-400">Encontrado em:</span> <span class="text-fnaf-cyan text-xs block mt-1">${appsList}</span></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-xs text-fnaf-yellow font-bold mb-1 flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation"></i> RELATÓRIO COMPORTAMENTAL
+                            </h4>
+                            <div class="text-sm text-gray-300 leading-relaxed bg-black p-3 border-l-4 border-fnaf-yellow text-justify" style="box-shadow: inset 0 0 10px rgba(0,0,0,0.8);">
+                                ${anim.desc}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modalDetail').classList.remove('hidden');
+        };
+
+        window.renderLore = function() {
+            const container = document.getElementById('loreContent');
+            const currentLore = window.state.lore[window.state.currentGameId] || "<p class='text-gray-500'>Nenhum arquivo de história registrado no Firebase para este jogo até o momento.</p>";
+            container.innerHTML = currentLore;
+        };
+
+        window.renderTheories = function() {
+            const container = document.getElementById('theoriesContainer');
+            const theoriesList = window.state.theories.filter(t => t.gameId === window.state.currentGameId);
+            container.innerHTML = '';
+
+            if (theoriesList.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-gray-500 border border-fnaf-border">Sem dados de teorias no banco de dados para este jogo.</div>`;
+                return;
+            }
+
+            theoriesList.forEach((t, idx) => {
+                const box = document.createElement('div');
+                box.className = "bg-fnaf-panel border border-fnaf-border p-4 rounded clip-corner";
+                box.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="text-base font-bold text-fnaf-cyan font-crt flex items-center gap-2">
+                            <i class="fa-solid fa-brain"></i> HIPÓTESE #${idx+1}: ${t.title}
+                        </h4>
+                        <span class="text-[10px] text-gray-500 bg-black px-2 py-0.5 border border-fnaf-border">Autor: ${t.author || 'Anônimo'}</span>
+                    </div>
+                    <p class="text-xs text-gray-300 font-mono leading-relaxed">${t.text}</p>
+                `;
+                container.appendChild(box);
+            });
+        };
+
+        window.renderUserArea = function() {
+            const container = document.getElementById('userArea');
+            container.innerHTML = '';
+
+            if (window.state.currentUser) {
+                const user = window.state.currentUser;
+                
+                if (user.isAdmin) {
+                    const adminBtn = document.createElement('button');
+                    adminBtn.onclick = () => window.switchTab('admin');
+                    adminBtn.className = "fnaf-btn px-2.5 py-1 text-xs border border-fnaf-red bg-fnaf-red/20 text-fnaf-red hover:bg-fnaf-red hover:text-black font-bold animate-pulse";
+                    adminBtn.innerHTML = t('admin_btn');
+                    container.appendChild(adminBtn);
+                }
+
+                const profileBtn = document.createElement('button');
+                profileBtn.onclick = window.openProfileModal;
+                profileBtn.className = "flex items-center gap-2 px-2 py-1 bg-fnaf-panel border border-fnaf-purple hover:border-white text-xs";
+                profileBtn.innerHTML = `
+                    <img src="${user.avatar || 'https://placehold.co/100x100/161b22/a371f7?text=U'}" class="w-5 h-5 rounded-full object-cover">
+                    <span class="text-fnaf-purple font-bold">${user.username}</span>
+                `;
+                container.appendChild(profileBtn);
+
+            } else {
+                const loginBtn = document.createElement('button');
+                loginBtn.onclick = () => window.openAuthModal(false);
+                loginBtn.className = "fnaf-btn px-3 py-1 text-xs border border-fnaf-green text-fnaf-green bg-fnaf-green/10 hover:bg-fnaf-green hover:text-black font-bold";
+                loginBtn.innerHTML = t('login_btn');
+                container.appendChild(loginBtn);
+            }
+        };
+
+        window.openAuthModal = function(isRegister = false) {
+            playRetroSound('beep');
+            window.state.authIsRegister = isRegister;
+            updateAuthModalUI();
+            document.getElementById('modalAuth').classList.remove('hidden');
+        };
+
+        window.toggleAuthMode = function() {
+            window.state.authIsRegister = !window.state.authIsRegister;
+            updateAuthModalUI();
+        };
+
+        function updateAuthModalUI() {
+            const title = document.getElementById('authModalTitle');
+            const submitText = document.getElementById('authSubmitBtnText');
+            const toggleText = document.getElementById('authToggleText');
+            const toggleBtn = document.getElementById('authToggleBtn');
+            const regFields = document.getElementById('registerOnlyFields');
+
+            if (window.state.authIsRegister) {
+                title.innerText = "CADASTRAR NOVO FUNCIONÁRIO";
+                submitText.innerText = "REGISTRAR CONTA";
+                toggleText.innerText = "Já possui crachá?";
+                toggleBtn.innerText = "Fazer Login";
+                regFields.classList.remove('hidden');
+            } else {
+                title.innerText = "AUTENTICAÇÃO FAZBEAR";
+                submitText.innerText = "ENTRAR NO SISTEMA";
+                toggleText.innerText = "Não tem um passe de acesso?";
+                toggleBtn.innerText = "Criar Conta";
+                regFields.classList.add('hidden');
+            }
+        }
+
+        // VERIFICAÇÃO DE SENHA 'fnaf67'
+        window.handleAuthSubmit = async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
+            const title = document.getElementById('authTitle').value.trim() || 'Guarda Noturno';
+            const avatar = document.getElementById('authAvatar').value.trim() || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=100&auto=format&fit=crop&q=60';
+
+            if (!username || !password) return;
+
+            const isAdmin = (password === 'fnaf67');
+
+            const userObj = {
+                username: username,
+                role: isAdmin ? 'OPERADOR DE SISTEMA' : 'FUNCIONÁRIO',
+                title: isAdmin ? 'ADMINISTRADOR FAZBEAR' : title,
+                avatar: avatar,
+                isAdmin: isAdmin
+            };
+
+            // 1. Define o usuário atual e salva localmente no navegador
+            window.state.currentUser = userObj;
+            localStorage.setItem('fnaf_current_user', JSON.stringify(userObj));
+
+            // 2. Fecha o modal de login e atualiza os botões de cabeçalho
+            closeModal('modalAuth');
+            renderUserArea();
+
+            // 3. Se for Admin (fnaf67), abre o Painel Admin diretamente
+            if (isAdmin) {
+                playRetroSound('admin');
+                showBanner("ACESSO ADMIN MESTRE CONCEDIDO VIA SENHA 'fnaf67'!");
+                window.switchTab('admin');
+            } else {
+                playRetroSound('beep');
+                showBanner("BEM-VINDO AO SISTEMA, " + username.toUpperCase() + "!");
+            }
+
+            // 4. Transmite o usuário para o Firebase em segundo plano
+            window.saveUserToCloud(userObj);
+        };
+
+        window.logout = function() {
+            playRetroSound('beep');
+            window.state.currentUser = null;
+            localStorage.removeItem('fnaf_current_user');
+            closeModal('modalProfile');
+            renderUserArea();
+            window.switchTab('animatronics');
+        };
+
+        window.openProfileModal = function() {
+            if (!window.state.currentUser) return;
+            const u = window.state.currentUser;
+            document.getElementById('profileDisplayUsername').innerText = u.username;
+            document.getElementById('profileDisplayRole').innerText = u.title;
+            document.getElementById('profilePreviewImg').src = u.avatar;
+            document.getElementById('editUserTitle').value = u.title;
+            document.getElementById('editUserAvatar').value = u.avatar;
+
+            document.getElementById('modalProfile').classList.remove('hidden');
+        };
+
+        window.saveProfileChanges = async function(e) {
+            e.preventDefault();
+            if (!window.state.currentUser) return;
+
+            window.state.currentUser.title = document.getElementById('editUserTitle').value;
+            window.state.currentUser.avatar = document.getElementById('editUserAvatar').value;
+
+            localStorage.setItem('fnaf_current_user', JSON.stringify(window.state.currentUser));
+            await window.saveUserToCloud(window.state.currentUser);
+
+            closeModal('modalProfile');
+            renderUserArea();
+            playRetroSound('beep');
+        };
+
+        window.openNewTheoryModal = function() {
+            if (!window.state.currentUser) {
+                alert("Faça login para publicar teorias!");
+                window.openAuthModal(false);
+                return;
+            }
+            document.getElementById('theoryTitle').value = '';
+            document.getElementById('theoryText').value = '';
+            document.getElementById('modalTheoryForm').classList.remove('hidden');
+        };
+
+        window.handleSaveTheory = async function(e) {
+            e.preventDefault();
+            const title = document.getElementById('theoryTitle').value;
+            const text = document.getElementById('theoryText').value;
+
+            const theoryObj = {
+                id: 'theory_' + Date.now(),
+                gameId: window.state.currentGameId,
+                title,
+                text,
+                author: window.state.currentUser ? window.state.currentUser.username : 'Anônimo'
+            };
+
+            await window.saveTheoryToCloud(theoryObj);
+            closeModal('modalTheoryForm');
+            playRetroSound('beep');
+            showBanner("Teoria salva no Firebase e transmitida para todos!");
+        };
+
+        window.renderAdminPanel = function() {
+            if (!window.state.currentUser || !window.state.currentUser.isAdmin) {
+                window.switchTab('animatronics');
+                return;
+            }
+
+            const tbody = document.getElementById('adminAnimatronicsTable');
+            tbody.innerHTML = '';
+
+            window.state.animatronics.forEach(anim => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-black/40 text-gray-300 font-mono";
+                tr.innerHTML = `
+                    <td class="p-2 font-bold text-fnaf-green">${anim.name}</td>
+                    <td class="p-2 text-xs text-gray-400">${anim.gameId.toUpperCase()}</td>
+                    <td class="p-2"><span class="text-fnaf-red font-bold">${anim.aggro}</span></td>
+                    <td class="p-2 text-right space-x-1">
+                        <button onclick="editAnimatronicAdmin('${anim.id}')" class="px-2 py-0.5 bg-fnaf-yellow/20 text-fnaf-yellow border border-fnaf-yellow/40 hover:bg-fnaf-yellow hover:text-black">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="deleteAnimatronicAdmin('${anim.id}')" class="px-2 py-0.5 bg-fnaf-red/20 text-fnaf-red border border-fnaf-red/40 hover:bg-fnaf-red hover:text-black">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const userListContainer = document.getElementById('adminUserList');
+            userListContainer.innerHTML = '';
+
+            window.state.usersList.forEach(u => {
+                const uDiv = document.createElement('div');
+                uDiv.className = "p-2 bg-black/40 border border-fnaf-border flex items-center justify-between text-xs";
+                uDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <img src="${u.avatar}" class="w-6 h-6 object-cover rounded">
+                        <div>
+                            <span class="font-bold text-white">${u.username}</span>
+                            <span class="block text-[10px] text-gray-400">${u.title || 'Guarda'}</span>
+                        </div>
+                    </div>
+                    ${u.isAdmin ? '<span class="text-[10px] text-fnaf-red border border-fnaf-red px-1 font-bold">ADMIN</span>' : '<span class="text-[10px] text-gray-500">USER</span>'}
+                `;
+                userListContainer.appendChild(uDiv);
+            });
+        };
+
+        window.openNewAnimatronicModal = function() {
+            document.getElementById('editAnimId').value = '';
+            document.getElementById('formAnimName').value = '';
+            document.getElementById('formAnimAggro').value = '';
+            document.getElementById('formAnimRoute').value = '';
+            document.getElementById('formAnimImage').value = '';
+            document.getElementById('formAnimDesc').value = '';
+            
+            const select = document.getElementById('formAnimGame');
+            select.innerHTML = window.state.games.map(g => `<option value="${g.id}">${g.title}</option>`).join('');
+
+            const appsContainer = document.getElementById('formAnimAppearances');
+            appsContainer.innerHTML = window.state.games.map(g => `
+                <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" class="appearance-cb" value="${g.id}">
+                    ${g.id.toUpperCase()}
+                </label>
+            `).join('');
+
+            document.getElementById('formAnimAggroType').value = 'single';
+            toggleAggroInputs();
+
+            document.getElementById('animFormModalTitle').innerText = "ADICIONAR NOVO ANIMATRONIC (FIREBASE)";
+            document.getElementById('modalAnimatronicForm').classList.remove('hidden');
+        };
+
+        window.toggleAggroInputs = function() {
+            const type = document.getElementById('formAnimAggroType').value;
+            const single = document.getElementById('aggroSingleContainer');
+            const multi = document.getElementById('aggroMultiContainer');
+            
+            if (type === 'multi') {
+                single.classList.add('hidden');
+                multi.classList.remove('hidden');
+            } else {
+                single.classList.remove('hidden');
+                multi.classList.add('hidden');
+            }
+        }
+
+        window.editAnimatronicAdmin = function(id) {
+            const anim = window.state.animatronics.find(a => a.id === id);
+            if (!anim) return;
+
+            document.getElementById('editAnimId').value = anim.id;
+            document.getElementById('formAnimName').value = anim.name;
+            document.getElementById('formAnimRoute').value = anim.route;
+            document.getElementById('formAnimImage').value = anim.image;
+            document.getElementById('formAnimImage2').value = anim.image2 || '';
+            document.getElementById('formAnimDesc').value = anim.desc;
+
+            // Lógica de agressividade
+            const type = anim.aggroType || 'single';
+            document.getElementById('formAnimAggroType').value = type;
+            toggleAggroInputs();
+
+            if (type === 'single') {
+                document.getElementById('formAnimAggro').value = anim.aggro || '';
+            } else if (anim.aggroMulti) {
+                document.getElementById('aggroN1').value = anim.aggroMulti.n1 || '';
+                document.getElementById('aggroN2').value = anim.aggroMulti.n2 || '';
+                document.getElementById('aggroN3').value = anim.aggroMulti.n3 || '';
+                document.getElementById('aggroN4').value = anim.aggroMulti.n4 || '';
+                document.getElementById('aggroN5').value = anim.aggroMulti.n5 || '';
+                document.getElementById('aggroN6').value = anim.aggroMulti.n6 || '';
+                document.getElementById('aggroNC').value = anim.aggroMulti.nc || '';
+            }
+
+            const select = document.getElementById('formAnimGame');
+            select.innerHTML = window.state.games.map(g => `<option value="${g.id}" ${g.id === anim.gameId ? 'selected' : ''}>${g.title}</option>`).join('');
+
+            const animApps = anim.appearances || [anim.gameId];
+            const appsContainer = document.getElementById('formAnimAppearances');
+            appsContainer.innerHTML = window.state.games.map(g => `
+                <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" class="appearance-cb" value="${g.id}" ${animApps.includes(g.id) ? 'checked' : ''}>
+                    ${g.id.toUpperCase()}
+                </label>
+            `).join('');
+
+            document.getElementById('animFormModalTitle').innerText = "EDITAR REGISTRO DE ANIMATRONIC";
+            document.getElementById('modalAnimatronicForm').classList.remove('hidden');
+        };
+
+        window.handleSaveAnimatronic = async function(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editAnimId').value;
+            const name = document.getElementById('formAnimName').value;
+            const gameId = document.getElementById('formAnimGame').value;
+            const route = document.getElementById('formAnimRoute').value;
+            const image = document.getElementById('formAnimImage').value;
+            const image2 = document.getElementById('formAnimImage2').value;
+            const desc = document.getElementById('formAnimDesc').value;
+
+            const aggroType = document.getElementById('formAnimAggroType').value;
+            let aggro = '';
+            let aggroMulti = null;
+
+            if (aggroType === 'single') {
+                aggro = document.getElementById('formAnimAggro').value;
+            } else {
+                aggroMulti = {
+                    n1: document.getElementById('aggroN1').value,
+                    n2: document.getElementById('aggroN2').value,
+                    n3: document.getElementById('aggroN3').value,
+                    n4: document.getElementById('aggroN4').value,
+                    n5: document.getElementById('aggroN5').value,
+                    n6: document.getElementById('aggroN6').value,
+                    nc: document.getElementById('aggroNC').value
+                };
+            }
+
+            let appearances = Array.from(document.querySelectorAll('.appearance-cb:checked')).map(cb => cb.value);
+            if (appearances.length === 0) appearances.push(gameId); // Garante que pelo menos o jogo base está incluso
+
+            const animData = {
+                id: editId || ('anim_' + Date.now()),
+                gameId, name, aggroType, aggro, aggroMulti, route, image, image2, desc, appearances
+            };
+
+            // 1. Atualiza a lista local instantaneamente
+            const existingIdx = window.state.animatronics.findIndex(a => a.id === animData.id);
+            if (existingIdx >= 0) {
+                window.state.animatronics[existingIdx] = animData;
+            } else {
+                window.state.animatronics.push(animData);
+            }
+
+            // 2. Renderiza as tabelas e galeria na hora
+            window.renderTabContent();
+
+            // 3. Fecha o modal de formulário
+            closeModal('modalAnimatronicForm');
+            playRetroSound('admin');
+            showBanner("Animatronic '" + name + "' registrado/atualizado com sucesso!");
+
+            // 4. Sincroniza no Firebase em segundo plano
+            window.saveAnimatronicToCloud(animData);
+        };
+
+        window.deleteAnimatronicAdmin = async function(id) {
+            playRetroSound('beep');
+            if (confirm("Tem certeza que deseja apagar este animatronic?")) {
+                window.state.animatronics = window.state.animatronics.filter(a => a.id !== id);
+                window.renderTabContent();
+                showBanner("Animatronic removido com sucesso.");
+                window.deleteAnimatronicFromCloud(id);
+            }
+        };
+
+        window.openEditLoreModal = async function() {
+            const currentLore = window.state.lore[window.state.currentGameId] || '';
+            const newLore = prompt("Edite o HTML da Lore para o jogo atual:", currentLore);
+            if (newLore !== null) {
+                await window.saveLoreToCloud(window.state.currentGameId, newLore);
+                showBanner("História atualizada globalmente para " + window.state.currentGameId.toUpperCase());
+            }
+        };
+
+        // GESTÃO DE NOVOS JOGOS
+        window.openNewGameModal = function() {
+            document.getElementById('formGameId').value = '';
+            document.getElementById('formGameTitle').value = '';
+            document.getElementById('formGameSub').value = '';
+            document.getElementById('formGameDesc').value = '';
+            document.getElementById('modalGameForm').classList.remove('hidden');
+        };
+
+        window.handleSaveGame = async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('formGameId').value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+            const title = document.getElementById('formGameTitle').value;
+            const sub = document.getElementById('formGameSub').value;
+            const desc = document.getElementById('formGameDesc').value;
+
+            if (window.state.games.some(g => g.id === id)) {
+                alert("Já existe um jogo com este ID!");
+                return;
+            }
+
+            const newGame = { id, title, sub, desc };
+            
+            // Adiciona localmente
+            window.state.games.push(newGame);
+            renderGameNav();
+            
+            // Salva na Nuvem
+            await window.saveGameToCloud(newGame);
+
+            closeModal('modalGameForm');
+            playRetroSound('admin');
+            showBanner("Novo jogo '" + title + "' adicionado ao banco de dados!");
+        };
+
+        window.closeModal = function(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        };
+
+        function showBanner(msg) {
+            document.getElementById('systemBannerMsg').innerText = msg;
+            document.getElementById('systemBanner').classList.remove('hidden');
+        }
+
+        window.hideSystemBanner = function() {
+            document.getElementById('systemBanner').classList.add('hidden');
+        };
+    </script>
+</body>
+</html>
