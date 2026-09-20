@@ -181,7 +181,12 @@
 
                 <!-- Botão Toggle Áudio -->
                 <button id="toggleAudioBtn" onclick="toggleAudio()" class="fnaf-btn px-2.5 py-1 text-xs border border-gray-600 hover:border-fnaf-green text-gray-300 hover:text-fnaf-green bg-black/50">
-                    <i id="audioIcon" class="fa-solid fa-volume-high mr-1"></i> SOM
+                    <i id="audioIcon" class="fa-solid fa-volume-high mr-1"></i> <span id="lblSound">SOM</span>
+                </button>
+
+                <!-- Botão Idioma -->
+                <button id="toggleLangBtn" onclick="toggleLanguage()" class="fnaf-btn px-2.5 py-1 text-xs border border-gray-600 hover:border-fnaf-green text-gray-300 hover:text-fnaf-green bg-black/50">
+                    <i class="fa-solid fa-globe mr-1"></i> <span id="langStatus">PT-BR</span>
                 </button>
 
                 <!-- Área de Perfil / Login / Admin Button -->
@@ -238,7 +243,7 @@
             <div class="mb-6 flex flex-wrap gap-3 items-center justify-between bg-fnaf-panel p-3 border border-fnaf-border rounded">
                 <div class="flex items-center gap-2 text-xs text-gray-400">
                     <i class="fa-solid fa-filter text-fnaf-green"></i>
-                    <span>Exibindo: <strong id="animatronicCount" class="text-fnaf-green">0</strong> Entidades (Live)</span>
+                    <span id="lblShowing">Exibindo: <strong id="animatronicCount" class="text-fnaf-green">0</strong> Entidades (Live)</span>
                 </div>
                 <div class="relative w-full sm:w-64">
                     <input type="text" id="searchInput" oninput="renderAnimatronics()" placeholder="Buscar animatronic..." 
@@ -499,11 +504,11 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">NÍVEL DE AGRESSIVIDADE (1-20)</label>
-                        <input type="number" id="formAnimAggro" min="1" max="20" required class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
+                        <label class="block text-xs text-gray-400 mb-1" id="lblFormAggro">NÍVEL DE AGRESSIVIDADE (TEXTO)</label>
+                        <input type="text" id="formAnimAggro" required placeholder="Ex: 20, Alta, Dinâmica" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">ROTA / LOCALIZAÇÃO INICIAL</label>
+                        <label class="block text-xs text-gray-400 mb-1" id="lblFormRoute">ROTA / LOCALIZAÇÃO INICIAL</label>
                         <input type="text" id="formAnimRoute" required placeholder="Ex: CAM 01A -> Corredor Oeste" class="w-full bg-black border border-fnaf-border text-fnaf-green text-xs p-2 focus:outline-none">
                     </div>
                 </div>
@@ -594,7 +599,7 @@
                 id: 'freddy_fnaf1',
                 gameId: 'fnaf1',
                 name: 'Freddy Fazbear',
-                aggro: 15,
+                aggro: '15',
                 route: 'Show Stage -> Dining Area -> Restrooms -> Kitchen -> East Hall',
                 image: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=500&auto=format&fit=crop&q=60',
                 desc: 'O líder do grupo animatrônico. Ele se move nas sombras nas noites mais avançadas.',
@@ -604,7 +609,7 @@
                 id: 'bonnie_fnaf1',
                 gameId: 'fnaf1',
                 name: 'Bonnie the Bunny',
-                aggro: 18,
+                aggro: '18',
                 route: 'Show Stage -> Dining Area -> Backstage -> West Hall -> Supply Closet',
                 image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500&auto=format&fit=crop&q=60',
                 desc: 'O coelho azul altamente ativo que ataca pelo lado esquerdo.',
@@ -614,7 +619,7 @@
                 id: 'chica_fnaf1',
                 gameId: 'fnaf1',
                 name: 'Chica the Chicken',
-                aggro: 16,
+                aggro: '16',
                 route: 'Show Stage -> Dining Area -> Restrooms -> Kitchen -> East Hall',
                 image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop&q=60',
                 desc: 'Ataca pelo lado direito. Ela costuma passar bastante tempo na cozinha.',
@@ -624,7 +629,7 @@
                 id: 'foxy_fnaf1',
                 gameId: 'fnaf1',
                 name: 'Foxy the Pirate Fox',
-                aggro: 19,
+                aggro: '19',
                 route: 'Pirate Cove -> West Hall -> Security Office',
                 image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=60',
                 desc: 'Permanece escondido na Pirate Cove. Correrá pelo corredor se não for vigiado.',
@@ -634,7 +639,7 @@
                 id: 'withered_bonnie',
                 gameId: 'fnaf2',
                 name: 'Withered Bonnie',
-                aggro: 20,
+                aggro: '20',
                 route: 'Parts/Service -> Main Hall -> Hallway -> Office',
                 image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=60',
                 desc: 'Sem o rosto e sem o braço esquerdo, exige reflexos rápidos com a máscara de Freddy.',
@@ -644,7 +649,7 @@
                 id: 'springtrap_fnaf3',
                 gameId: 'fnaf3',
                 name: 'Springtrap',
-                aggro: 20,
+                aggro: '20',
                 route: 'CAM 01 a CAM 10 & Dutos de Ventilação',
                 image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500&auto=format&fit=crop&q=60',
                 desc: 'Contém o corpo em decomposição de William Afton. Atraído por áudios de voz.',
@@ -675,7 +680,78 @@
             theories: [],
             audioEnabled: true,
             crtEnabled: true,
-            authIsRegister: false
+            authIsRegister: false,
+            lang: 'pt'
+        };
+
+        // Sistema de Idiomas (i18n)
+        const i18n = {
+            'pt': {
+                'sound': 'SOM',
+                'tab_anims': '<i class="fa-solid fa-robot mr-1"></i> Animatronics',
+                'tab_lore': '<i class="fa-solid fa-book-skull mr-1"></i> História & Lore',
+                'tab_theories': '<i class="fa-solid fa-brain mr-1"></i> Teorias',
+                'search_ph': 'Buscar animatronic...',
+                'showing': 'Exibindo:',
+                'entities': 'Entidades (Live)',
+                'ai_level': 'Nível de Agressividade:',
+                'rec_route': 'Rota Recomendada:',
+                'appearances': 'Aparições:',
+                'behavior': 'RELATÓRIO DE COMPORTAMENTO:',
+                'specs': '<i class="fa-solid fa-microchip mr-1"></i> ESPECIFICAÇÕES',
+                'login_btn': '<i class="fa-solid fa-right-to-bracket mr-1"></i> ENTRAR / REGISTRAR',
+                'admin_btn': '<i class="fa-solid fa-user-shield mr-1"></i> ADMIN',
+                'form_aggro_lbl': 'NÍVEL DE AGRESSIVIDADE (TEXTO)',
+                'form_route_lbl': 'ROTA / LOCALIZAÇÃO INICIAL',
+                'no_anims': 'NENHUM ANIMATRONIC ENCONTRADO EM TEMPO REAL PARA ESTE TÍTULO.',
+                'seen_in': 'VISTO EM:',
+                'admin_title': 'TERMINAL DE CONTROLE CENTRAL FAZBEAR'
+            },
+            'en': {
+                'sound': 'SOUND',
+                'tab_anims': '<i class="fa-solid fa-robot mr-1"></i> Animatronics',
+                'tab_lore': '<i class="fa-solid fa-book-skull mr-1"></i> Story & Lore',
+                'tab_theories': '<i class="fa-solid fa-brain mr-1"></i> Theories',
+                'search_ph': 'Search animatronic...',
+                'showing': 'Showing:',
+                'entities': 'Entities (Live)',
+                'ai_level': 'Aggressiveness Level:',
+                'rec_route': 'Recommended Route:',
+                'appearances': 'Appearances:',
+                'behavior': 'BEHAVIOR REPORT:',
+                'specs': '<i class="fa-solid fa-microchip mr-1"></i> SPECIFICATIONS',
+                'login_btn': '<i class="fa-solid fa-right-to-bracket mr-1"></i> LOGIN / REGISTER',
+                'admin_btn': '<i class="fa-solid fa-user-shield mr-1"></i> ADMIN',
+                'form_aggro_lbl': 'AGGRESSIVENESS LEVEL (TEXT)',
+                'form_route_lbl': 'ROUTE / STARTING LOCATION',
+                'no_anims': 'NO ANIMATRONIC FOUND IN REAL-TIME FOR THIS TITLE.',
+                'seen_in': 'SEEN IN:',
+                'admin_title': 'FAZBEAR CENTRAL CONTROL TERMINAL'
+            }
+        };
+
+        window.t = function(key) {
+            return i18n[window.state.lang][key] || key;
+        };
+
+        window.toggleLanguage = function() {
+            window.state.lang = window.state.lang === 'pt' ? 'en' : 'pt';
+            document.getElementById('langStatus').innerText = window.state.lang === 'pt' ? 'PT-BR' : 'EN-US';
+            playRetroSound('beep');
+            applyLanguageToUI();
+        };
+
+        window.applyLanguageToUI = function() {
+            if(document.getElementById('lblSound')) document.getElementById('lblSound').innerText = t('sound');
+            if(document.getElementById('tabBtn-animatronics')) document.getElementById('tabBtn-animatronics').innerHTML = t('tab_anims');
+            if(document.getElementById('tabBtn-lore')) document.getElementById('tabBtn-lore').innerHTML = t('tab_lore');
+            if(document.getElementById('tabBtn-theories')) document.getElementById('tabBtn-theories').innerHTML = t('tab_theories');
+            if(document.getElementById('searchInput')) document.getElementById('searchInput').placeholder = t('search_ph');
+            if(document.getElementById('lblFormAggro')) document.getElementById('lblFormAggro').innerText = t('form_aggro_lbl');
+            if(document.getElementById('lblFormRoute')) document.getElementById('lblFormRoute').innerText = t('form_route_lbl');
+            
+            renderTabContent();
+            renderUserArea();
         };
 
         // Web Audio Synth
@@ -948,6 +1024,8 @@
 
             const savedUser = localStorage.getItem('fnaf_current_user');
             if (savedUser) window.state.currentUser = JSON.parse(savedUser);
+            
+            applyLanguageToUI();
             renderUserArea();
 
             selectGame('fnaf1');
@@ -1058,13 +1136,14 @@
                 a.name.toLowerCase().includes(search)
             );
 
-            document.getElementById('animatronicCount').innerText = filtered.length;
+            const showingLbl = document.getElementById('lblShowing');
+            if(showingLbl) showingLbl.innerHTML = `${t('showing')} <strong id="animatronicCount" class="text-fnaf-green">${filtered.length}</strong> ${t('entities')}`;
 
             if (filtered.length === 0) {
                 grid.innerHTML = `
                     <div class="col-span-full text-center py-12 text-gray-500 border border-dashed border-fnaf-border">
                         <i class="fa-solid fa-triangle-exclamation text-3xl mb-2 text-fnaf-yellow"></i>
-                        <p class="font-mono text-sm">NENHUM ANIMATRONIC ENCONTRADO EM TEMPO REAL PARA ESTE TÍTULO.</p>
+                        <p class="font-mono text-sm">${t('no_anims')}</p>
                     </div>
                 `;
                 return;
@@ -1075,8 +1154,13 @@
                 card.className = "bg-fnaf-panel border border-fnaf-border hover:border-fnaf-green transition p-3 flex flex-col justify-between group clip-corner relative camera-static";
                 
                 let aggroColor = "text-fnaf-green border-fnaf-green";
-                if (anim.aggro > 10) aggroColor = "text-fnaf-yellow border-fnaf-yellow";
-                if (anim.aggro > 16) aggroColor = "text-fnaf-red border-fnaf-red";
+                let aggroNum = parseInt(anim.aggro);
+                if (!isNaN(aggroNum)) {
+                    if (aggroNum > 10) aggroColor = "text-fnaf-yellow border-fnaf-yellow";
+                    if (aggroNum > 16) aggroColor = "text-fnaf-red border-fnaf-red";
+                } else if (anim.aggro && (anim.aggro.toLowerCase().includes('alt') || anim.aggro.toLowerCase().includes('high') || anim.aggro.toLowerCase().includes('extrem'))) {
+                    aggroColor = "text-fnaf-red border-fnaf-red";
+                }
 
                 const appsText = (anim.appearances || [anim.gameId]).map(gid => gid.toUpperCase()).join(', ');
 
@@ -1084,7 +1168,7 @@
                     <div>
                         <div class="flex justify-between items-center text-[10px] text-gray-400 mb-2 font-mono">
                             <span class="flex items-center gap-1"><i class="fa-solid fa-video text-fnaf-green animate-pulse"></i> CAM_ONLINE</span>
-                            <span class="border ${aggroColor} px-1 font-bold">AI: ${anim.aggro}/20</span>
+                            <span class="border ${aggroColor} px-1 font-bold">AI: ${anim.aggro}</span>
                         </div>
 
                         <div class="relative overflow-hidden bg-black aspect-square border border-fnaf-border/60 mb-3 group-hover:border-fnaf-green">
@@ -1094,12 +1178,12 @@
                         </div>
 
                         <h4 class="font-crt font-bold text-lg text-white group-hover:text-fnaf-green transition">${anim.name}</h4>
-                        <p class="text-[9px] text-fnaf-cyan mt-1 truncate">VISTO EM: ${appsText}</p>
+                        <p class="text-[9px] text-fnaf-cyan mt-1 truncate">${t('seen_in')} ${appsText}</p>
                         <p class="text-[11px] text-gray-400 line-clamp-2 mt-1">${anim.desc}</p>
                     </div>
 
                     <button onclick="openAnimatronicDetail('${anim.id}')" class="mt-4 w-full py-1.5 bg-black border border-fnaf-border text-xs text-gray-300 hover:text-fnaf-green hover:border-fnaf-green transition fnaf-btn">
-                        <i class="fa-solid fa-microchip mr-1"></i> ESPECIFICAÇÕES
+                        ${t('specs')}
                     </button>
                 `;
                 grid.appendChild(card);
@@ -1132,13 +1216,13 @@
                         </div>
                         
                         <div class="bg-black/60 p-2 border border-fnaf-border text-xs space-y-1">
-                            <p><span class="text-gray-400">Nível de Agressividade IA:</span> <strong class="text-fnaf-red">${anim.aggro} / 20</strong></p>
-                            <p><span class="text-gray-400">Rota Recomendada:</span> <span class="text-gray-200">${anim.route}</span></p>
-                            <p><span class="text-gray-400">Aparições:</span> <span class="text-fnaf-cyan">${appsList}</span></p>
+                            <p><span class="text-gray-400">${t('ai_level')}</span> <strong class="text-fnaf-red">${anim.aggro}</strong></p>
+                            <p><span class="text-gray-400">${t('rec_route')}</span> <span class="text-gray-200">${anim.route}</span></p>
+                            <p><span class="text-gray-400">${t('appearances')}</span> <span class="text-fnaf-cyan">${appsList}</span></p>
                         </div>
 
                         <div>
-                            <h4 class="text-xs text-gray-400 mb-1">RELATÓRIO DE COMPORTAMENTO:</h4>
+                            <h4 class="text-xs text-gray-400 mb-1">${t('behavior')}</h4>
                             <p class="text-xs text-gray-300 leading-relaxed bg-fnaf-panel p-3 border border-fnaf-border">${anim.desc}</p>
                         </div>
                     </div>
@@ -1190,7 +1274,7 @@
                     const adminBtn = document.createElement('button');
                     adminBtn.onclick = () => window.switchTab('admin');
                     adminBtn.className = "fnaf-btn px-2.5 py-1 text-xs border border-fnaf-red bg-fnaf-red/20 text-fnaf-red hover:bg-fnaf-red hover:text-black font-bold animate-pulse";
-                    adminBtn.innerHTML = `<i class="fa-solid fa-user-shield mr-1"></i> ADMIN`;
+                    adminBtn.innerHTML = t('admin_btn');
                     container.appendChild(adminBtn);
                 }
 
@@ -1207,7 +1291,7 @@
                 const loginBtn = document.createElement('button');
                 loginBtn.onclick = () => window.openAuthModal(false);
                 loginBtn.className = "fnaf-btn px-3 py-1 text-xs border border-fnaf-green text-fnaf-green bg-fnaf-green/10 hover:bg-fnaf-green hover:text-black font-bold";
-                loginBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket mr-1"></i> ENTRAR / REGISTRAR`;
+                loginBtn.innerHTML = t('login_btn');
                 container.appendChild(loginBtn);
             }
         };
@@ -1369,7 +1453,7 @@
                 tr.innerHTML = `
                     <td class="p-2 font-bold text-fnaf-green">${anim.name}</td>
                     <td class="p-2 text-xs text-gray-400">${anim.gameId.toUpperCase()}</td>
-                    <td class="p-2"><span class="text-fnaf-red font-bold">${anim.aggro}</span>/20</td>
+                    <td class="p-2"><span class="text-fnaf-red font-bold">${anim.aggro}</span></td>
                     <td class="p-2 text-right space-x-1">
                         <button onclick="editAnimatronicAdmin('${anim.id}')" class="px-2 py-0.5 bg-fnaf-yellow/20 text-fnaf-yellow border border-fnaf-yellow/40 hover:bg-fnaf-yellow hover:text-black">
                             <i class="fa-solid fa-pen"></i>
@@ -1405,7 +1489,7 @@
         window.openNewAnimatronicModal = function() {
             document.getElementById('editAnimId').value = '';
             document.getElementById('formAnimName').value = '';
-            document.getElementById('formAnimAggro').value = 10;
+            document.getElementById('formAnimAggro').value = '';
             document.getElementById('formAnimRoute').value = '';
             document.getElementById('formAnimImage').value = '';
             document.getElementById('formAnimDesc').value = '';
@@ -1457,7 +1541,7 @@
             const editId = document.getElementById('editAnimId').value;
             const name = document.getElementById('formAnimName').value;
             const gameId = document.getElementById('formAnimGame').value;
-            const aggro = parseInt(document.getElementById('formAnimAggro').value);
+            const aggro = document.getElementById('formAnimAggro').value;
             const route = document.getElementById('formAnimRoute').value;
             const image = document.getElementById('formAnimImage').value;
             const desc = document.getElementById('formAnimDesc').value;
